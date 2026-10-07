@@ -30,13 +30,16 @@ the current package dependencies.
    files, and push `codex/nuget-release`. This branch push runs validation only.
    Do not reuse corporate credentials without authorization.
    Establish `main` and merge the verified branch before tagging a release.
-2. Protect `main`, requiring all three OS verification jobs. Require review for
-   workflow changes. Do not allow untrusted contributors to publish releases.
-3. Create the GitHub environment `nuget`, add required reviewers, prevent
-   self-approval, and restrict deployments to release tags. These protections
-   must be configured in GitHub; a workflow cannot configure them for you.
-4. Add the environment secret `NUGET_USER`: the authorized NuGet **profile
-   username**, not an email address or API key.
+2. Protect `main`, requiring all three OS verification jobs and disallowing
+   force pushes and deletion. The owner reviews workflow changes before
+   approving publication. Do not allow untrusted contributors to publish releases.
+3. Create the GitHub environment `nuget` with `chandrakanth877` as its required
+   reviewer. Allow self-approval for this single-maintainer repository, but keep
+   the manual approval gate. Restrict deployments to tags matching `v*`, not
+   branches. These protections must be configured in GitHub; a workflow cannot
+   configure them for you.
+4. Add the environment secret `NUGET_USER` with the value `Chandrakanth`: the
+   authorized NuGet **profile username**, not an email address or API key.
 5. On NuGet.org, create a Trusted Publishing policy owned by the intended
    publishing account/organization: repository owner `chandrakanth877`, repository `Blazor.Ink`,
    workflow filename `build.yml`, environment `nuget`, package pattern
@@ -48,6 +51,9 @@ the current package dependencies.
 
 No long-lived NuGet API key, author-signing certificate, or strong-name key is
 required. Do not commit credentials or certificate private keys.
+
+<!-- ponytail: single-owner approval is manual authorization, not independent
+review; add a second maintainer and prevent self-approval when one is available. -->
 
 ## Validation pipeline and first-publication plan
 
