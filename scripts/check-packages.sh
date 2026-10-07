@@ -71,9 +71,21 @@ EOF
 NUGET_PACKAGES="$("$python" -c 'import os, tempfile; print(tempfile.mkdtemp(prefix="consumer-cache.", dir=os.path.abspath("artifacts")))' | tr -d '\r')"
 export NUGET_PACKAGES
 local_feed="$("$python" -c 'import os; print(os.path.abspath("artifacts/packages"))' | tr -d '\r')"
-# Sources already use native paths; prevent Git Bash from rewriting the source list.
-MSYS2_ARG_CONV_EXCL='*' "$dotnet" restore artifacts/consumer/Consumer.csproj --source "$local_feed" \
-  --source "${NUGET_SOURCE:-https://api.nuget.org/v3/index.json}" --force --force-evaluate --disable-parallel -m:1
+# Keep native paths and HTTPS URLs out of command-line source-list normalization.
+"$python" - <<'PY'
+import os
+import xml.etree.ElementTree as ET
+config = ET.parse("NuGet.Config")
+sources = config.find("packageSources")
+upstream = sources.find("add[@key='nuget.org']")
+if os.environ.get("NUGET_SOURCE"):
+    upstream.set("value", os.environ["NUGET_SOURCE"])
+    upstream.attrib.pop("protocolVersion", None)
+ET.SubElement(sources, "add", key="local", value=os.path.abspath("artifacts/packages"))
+config.write("artifacts/consumer/NuGet.Config", encoding="utf-8", xml_declaration=True)
+PY
+"$dotnet" restore artifacts/consumer/Consumer.csproj --configfile artifacts/consumer/NuGet.Config \
+  --force --force-evaluate --disable-parallel -m:1
 "$python" scripts/check-package.py "$local_feed/Blazor.Ink.$version.nupkg" --restored-cache "$NUGET_PACKAGES"
 for framework in net8.0 net10.0; do
   "$dotnet" run --project artifacts/consumer -c Release -f "$framework" --no-restore -p:UseSharedCompilation=false
