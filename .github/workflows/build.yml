@@ -5,6 +5,12 @@ on:
     branches: [main, 'codex/**']
   pull_request:
   workflow_dispatch:
+    inputs:
+      published_tag:
+        description: 'Verify an already-pushed v<version> tag without rebuilding or publishing'
+        type: string
+        required: false
+        default: ''
   release:
     types: [published]
 
@@ -14,6 +20,7 @@ permissions:
 jobs:
   verify:
     name: Verify (${{ matrix.os }})
+    if: github.event_name != 'workflow_dispatch' || inputs.published_tag == ''
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -80,7 +87,7 @@ jobs:
     needs: verify
     if: github.repository == 'chandrakanth877/Blazor.Ink' && github.event_name == 'release' && vars.NUGET_PUBLISH_ENABLED == 'true'
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     environment: nuget
     concurrency:
       group: publish-blazor-ink
@@ -130,21 +137,64 @@ jobs:
       - name: Download and verify the repository-signed publication
         env:
           PACKAGE_VERSION: ${{ steps.package.outputs.version }}
-        run: |
+        run: &verify_publication |
           mkdir -p artifacts/published
           package="artifacts/published/Blazor.Ink.$PACKAGE_VERSION.nupkg"
-          curl --fail --show-error --location --retry 12 --retry-delay 10 --retry-all-errors \
-            --max-time 30 \
+          # NuGet validation/indexing is asynchronous; wait up to 15 minutes.
+          curl --fail --silent --show-error --location --retry 60 --retry-delay 15 --retry-all-errors \
+            --retry-max-time 900 --max-time 30 \
             "https://api.nuget.org/v3-flatcontainer/blazor.ink/$PACKAGE_VERSION/blazor.ink.$PACKAGE_VERSION.nupkg" \
-            --output "$package"
+            --output "$package.download" 2>&1 | tee artifacts/published/download.log
+          mv "$package.download" "$package"
           dotnet nuget verify "$package" --all --verbosity normal \
             | tee artifacts/published/signature-verification.log
           python scripts/check-package.py "$package" --published --tag "$RELEASE_TAG" \
             --repository "https://github.com/$GITHUB_REPOSITORY" --commit "$(git rev-parse HEAD)"
-      - name: Preserve the verified repository-signed package and log
+      - &publication_evidence
+        name: Preserve the repository-signed package and verification evidence
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: repository-signed-nuget
-          path: artifacts/published/
-          if-no-files-found: error
+          path: |
+            artifacts/published/*.nupkg
+            artifacts/published/*.log
+          if-no-files-found: warn
           retention-days: 90
+
+  verify-published:
+    name: Verify existing NuGet publication (no push)
+    if: github.event_name == 'workflow_dispatch' && inputs.published_tag != ''
+    runs-on: windows-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    env:
+      RELEASE_TAG: ${{ inputs.published_tag }}
+    steps:
+      - name: Checkout the already-published release tag
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: refs/tags/${{ inputs.published_tag }}
+          persist-credentials: false
+      - name: Install the pinned SDK for signature verification
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          global-json-file: global.json
+      - name: Check release version without rebuilding
+        id: package
+        run: |
+          version="$(dotnet msbuild src/Blazor.Ink/Blazor.Ink.csproj -getProperty:Version | tr -d '\r')"
+          if [[ "$RELEASE_TAG" != "v$version" ]]; then
+            echo "Release tag must equal v$version." >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Download and verify the repository-signed publication
+        env:
+          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+        run: *verify_publication
+      - *publication_evidence

@@ -60,7 +60,8 @@ review; add a second maintainer and prevent self-approval when one is available.
 1. Push the local branch and inspect the
    [Actions run](https://github.com/chandrakanth877/Blazor.Ink/actions/workflows/build.yml).
    Alternatively, choose **Run workflow** once the workflow exists on the default
-   branch. `workflow_dispatch` is verification-only; it cannot publish.
+   branch. Leave `published_tag` empty for platform/build verification.
+   `workflow_dispatch` is verification-only; it cannot publish.
 2. Require `Verify (windows-latest)`, `Verify (ubuntu-latest)`, and
    `Verify (macos-latest)` to pass. Each runs .NET 8 and 10 checks, samples,
    package inspection, and a clean NuGet consumer. Windows adds ConPTY checks;
@@ -116,8 +117,16 @@ bytes with their symbol package. It does not rebuild.
 
 Package versions are immutable. A collision fails instead of silently skipping
 an existing package. If push succeeded but indexing/signature verification
-failed, inspect the published version and rerun its download/verification
-separately; do not assume rerunning a push will replace or roll it back.
+failed, **do not rerun the publishing job**: the version was already accepted.
+NuGet validation and indexing are asynchronous; the download waits up to
+15 minutes and retains failure logs. Choose **Run workflow** on `main` and set
+`published_tag` to the existing release tag (for example `v0.1.0-preview.1`).
+This recovery checks out the unchanged tag, downloads the indexed package,
+verifies its signature and release metadata on Windows, and preserves the
+signed package and logs. It neither rebuilds nor requests credentials nor
+pushes a package. If the download still returns 404 after the bounded wait,
+check the package's validation status on NuGet.org; do not republish or move
+the release tag.
 
 ## Signing and evidence
 
