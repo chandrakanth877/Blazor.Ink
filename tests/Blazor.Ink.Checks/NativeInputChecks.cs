@@ -1,5 +1,7 @@
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Blazor.Ink;
+using Microsoft.Win32.SafeHandles;
 
 namespace Blazor.Ink.Checks;
 
@@ -12,6 +14,20 @@ internal static class NativeInputChecks
     [DllImport("kernel32.dll", SetLastError = true)] private static extern bool SetConsoleMode(IntPtr handle, uint mode);
     [DllImport("kernel32.dll")] private static extern uint GetConsoleCP();
     [DllImport("kernel32.dll", SetLastError = true)] private static extern bool SetConsoleCP(uint codePage);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern SafeFileHandle CreateFileW(string name, uint access, uint share,
+        IntPtr security, uint creation, uint flags, IntPtr template);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetStdHandle(int handle, IntPtr value);
+
+    private static SafeFileHandle OpenConsole(string name)
+    {
+        var handle = CreateFileW(name, 0xc0000000, 3, IntPtr.Zero, 3, 0, IntPtr.Zero);
+        if (!handle.IsInvalid) return handle;
+        var error = Marshal.GetLastPInvokeError();
+        handle.Dispose();
+        throw new Win32Exception(error);
+    }
 
     internal static string Snapshot()
     {
@@ -32,6 +48,15 @@ internal static class NativeInputChecks
 
     public static async Task ChildAsync(string scenario)
     {
+        // CI parents redirect stdio. Use this child's ConPTY console, not inherited pipes.
+        using var consoleInput = OperatingSystem.IsWindows() ? OpenConsole("CONIN$") : null;
+        using var consoleOutput = OperatingSystem.IsWindows() ? OpenConsole("CONOUT$") : null;
+        if (OperatingSystem.IsWindows() &&
+            (!SetStdHandle(-10, consoleInput!.DangerousGetHandle()) ||
+             !SetStdHandle(-11, consoleOutput!.DangerousGetHandle()) ||
+             !SetStdHandle(-12, consoleOutput!.DangerousGetHandle())))
+            throw new Win32Exception(Marshal.GetLastPInvokeError());
+
         if (OperatingSystem.IsWindows() && scenario == "preconfigured")
         {
             if (!GetConsoleMode(GetStdHandle(-10), out var mode) ||
