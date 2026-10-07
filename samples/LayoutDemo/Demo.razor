@@ -1,0 +1,25 @@
+@using Blazor.Ink
+@using Blazor.Ink.Components
+@using Facebook.Yoga
+
+<Box Width="@((Length)60)" FlexDirection="@YGFlexDirection.Column" Gap="1">
+    <Box BorderStyle="@BorderStyle.Round" Padding="1"
+         Style="@(new BoxStyle { BorderColor = "cyan" })">
+        <Blazor.Ink.Components.Text Bold="true">Blazor.Ink — Razor terminal layout preview</Blazor.Ink.Components.Text>
+    </Box>
+    <Box FlexDirection="@YGFlexDirection.Column" Gap="1">
+        <Blazor.Ink.Components.Text Color="green">User: Review the layout engine.</Blazor.Ink.Components.Text>
+        <Blazor.Ink.Components.Text>Assistant: Yoga handles flexbox. Blazor owns component lifecycle and keyed reconciliation.</Blazor.Ink.Components.Text>
+        <Blazor.Ink.Components.Text Color="yellow">@safeOutput</Blazor.Ink.Components.Text>
+    </Box>
+    <Box Width="@((Length)60)">
+        <Blazor.Ink.Components.Text DimColor="true">Headless sample — no agent or input loop</Blazor.Ink.Components.Text>
+        <Spacer />
+        <Blazor.Ink.Components.Text Color="cyan">.NET</Blazor.Ink.Components.Text>
+    </Box>
+</Box>
+
+@code {
+    private readonly string safeOutput = TerminalText.Plain(
+        "Tool text: 你好 👩‍💻 é \u001b]52;c;blocked\u0007 (clipboard control removed)");
+}

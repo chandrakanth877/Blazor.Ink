@@ -1,0 +1,44 @@
+@using Blazor.Ink
+@using Blazor.Ink.Components
+@implements IDisposable
+@inject InkInput Input
+@inject InkSession Session
+
+<Box Style="@(new BoxStyle { FlexDirection = Facebook.Yoga.YGFlexDirection.Column })">
+    <Static TItem="string" Items="@history">
+        <ChildContent Context="item"><Blazor.Ink.Components.Text>@item</Blazor.Ink.Components.Text></ChildContent>
+    </Static>
+    <Box BorderStyle="@BorderStyle.Round" Width="@((Length)58)">
+        <Blazor.Ink.Components.Text>@status</Blazor.Ink.Components.Text>
+    </Box>
+    <Blazor.Ink.Components.Text DimColor="true">Type or paste; q or Ctrl+C exits. No agent/provider.</Blazor.Ink.Components.Text>
+</Box>
+
+@code {
+    private readonly List<string> history = [];
+    private string status = "Input foundation — ready";
+    private InkInputSubscription? keys, paste;
+    protected override void OnInitialized()
+    {
+        if (!Input.IsAvailable) { status = "Terminal input unavailable"; Session.RequestExit(1); return; }
+        keys = Input.Subscribe(input =>
+        {
+            if (input.Text == "q" && !input.IsPaste) { status = "Complete — input restored"; Session.RequestExit(); }
+            else
+            {
+                status = $"Key: {input.Key?.Name}  Text: {TerminalText.Plain(input.Text)}";
+                history.Add(status);
+            }
+            StateHasChanged();
+            return Task.CompletedTask;
+        });
+        paste = Input.SubscribePaste(text =>
+        {
+            status = $"Paste: {TerminalText.Plain(text)}";
+            history.Add(status);
+            StateHasChanged();
+            return Task.CompletedTask;
+        });
+    }
+    public void Dispose() { keys?.Dispose(); paste?.Dispose(); }
+}

@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "Wcwidth": {
+        "type": "Transitive",
+        "resolved": "4.0.1",
+        "contentHash": "PMU8u3pGf9nUkee39KMrB8qqId7u7kyGWaZpOh9E4Mal3xChq+relS/hHQOicGAswyzi7F5DjXjac0mTnRBX8Q=="
+      },
+      "Yoga.Net": {
+        "type": "Transitive",
+        "resolved": "3.2.3",
+        "contentHash": "g7maV1ZBC+kpeExf37jErIMTe559NmAhs/GUSO016mG90vdPQFFLV/ZyOR9+kYk5Zc9TL82QUAP6RJ0olTCYIg=="
+      },
+      "blazor.ink": {
+        "type": "Project",
+        "dependencies": {
+          "Wcwidth": "[4.0.1, )",
+          "Yoga.Net": "[3.2.3, )"
+        }
+      }
+    },
+    "net8.0": {
+      "Wcwidth": {
+        "type": "Transitive",
+        "resolved": "4.0.1",
+        "contentHash": "PMU8u3pGf9nUkee39KMrB8qqId7u7kyGWaZpOh9E4Mal3xChq+relS/hHQOicGAswyzi7F5DjXjac0mTnRBX8Q=="
+      },
+      "Yoga.Net": {
+        "type": "Transitive",
+        "resolved": "3.2.3",
+        "contentHash": "g7maV1ZBC+kpeExf37jErIMTe559NmAhs/GUSO016mG90vdPQFFLV/ZyOR9+kYk5Zc9TL82QUAP6RJ0olTCYIg=="
+      },
+      "blazor.ink": {
+        "type": "Project",
+        "dependencies": {
+          "Wcwidth": "[4.0.1, )",
+          "Yoga.Net": "[3.2.3, )"
+        }
+      }
+    }
+  }
+}

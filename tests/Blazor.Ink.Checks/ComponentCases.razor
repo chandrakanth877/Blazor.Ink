@@ -1,0 +1,51 @@
+@using Microsoft.AspNetCore.Components
+@using Blazor.Ink
+@using Blazor.Ink.Components
+@using Facebook.Yoga
+@switch (Case)
+{
+    case "components":
+        <Box BorderStyle="@BorderStyle.Single" Width="@((Length)7)"><Blazor.Ink.Components.Text>hello</Blazor.Ink.Components.Text></Box>
+        break;
+    case "spacer":
+        <Box Width="@((Length)6)"><Blazor.Ink.Components.Text>A</Blazor.Ink.Components.Text><Spacer /><Blazor.Ink.Components.Text>B</Blazor.Ink.Components.Text></Box>
+        break;
+    case "newline":
+        <Blazor.Ink.Components.Text>A<Newline Count="2" />B</Blazor.Ink.Components.Text>
+        break;
+    case "transform":
+        <Transform Apply="@Upper"><Blazor.Ink.Components.Text>one<Newline />two</Blazor.Ink.Components.Text></Transform>
+        break;
+    case "static":
+        <Static TItem="string" Items="@items"><ChildContent Context="item"><Blazor.Ink.Components.Text>@item</Blazor.Ink.Components.Text></ChildContent></Static>
+        <Blazor.Ink.Components.Text>live</Blazor.Ink.Components.Text>
+        break;
+    case "styled":
+        <Blazor.Ink.Components.Text Bold="true" Color="red">hello</Blazor.Ink.Components.Text>
+        break;
+    case "background":
+        <Blazor.Ink.Components.Text BackgroundColor="blue">x</Blazor.Ink.Components.Text>
+        break;
+    case "nested-style":
+        <Blazor.Ink.Components.Text Bold="true">A<Blazor.Ink.Components.Text Color="red">B</Blazor.Ink.Components.Text>C</Blazor.Ink.Components.Text>
+        break;
+    case "word":
+        <Box Width="@((Length)8)"><Blazor.Ink.Components.Text>hello world</Blazor.Ink.Components.Text></Box>
+        break;
+    case "remove-style":
+        <Box Style="@(Narrow ? new BoxStyle { Width = 3 } : new BoxStyle())"><Blazor.Ink.Components.Text>abcdef</Blazor.Ink.Components.Text></Box>
+        break;
+    case "invalid":
+        <Box><Blazor.Ink.Components.Text>text<Box><Blazor.Ink.Components.Text>invalid</Blazor.Ink.Components.Text></Box></Blazor.Ink.Components.Text></Box>
+        break;
+    case "invalid-static":
+        <Blazor.Ink.Components.Text>inline<Static TItem="string" Items="@items"><ChildContent Context="item"><Blazor.Ink.Components.Text>@item</Blazor.Ink.Components.Text></ChildContent></Static></Blazor.Ink.Components.Text>
+        break;
+}
+
+@code {
+    [Parameter] public string Case { get; set; } = "";
+    [Parameter] public bool Narrow { get; set; }
+    private readonly string[] items = ["first", "second"];
+    private static string Upper(string value, int index) => $"{index}:{value.ToUpperInvariant()}";
+}

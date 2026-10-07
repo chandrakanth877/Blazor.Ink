@@ -1,0 +1,21 @@
+@using Blazor.Ink
+@using Blazor.Ink.Components
+@using Microsoft.AspNetCore.Components
+@using Facebook.Yoga
+
+<Box FlexDirection="@YGFlexDirection.Column">
+    <Static TItem="string" Items="@Transcript">
+        <ChildContent Context="line">
+            <Blazor.Ink.Components.Text Color="green">@line</Blazor.Ink.Components.Text>
+        </ChildContent>
+    </Static>
+    <Box BorderStyle="@BorderStyle.Round" Padding="1">
+        <Blazor.Ink.Components.Text Color="cyan">@Status</Blazor.Ink.Components.Text>
+    </Box>
+    <Blazor.Ink.Components.Text DimColor="true">Scripted output demo — no native input or provider</Blazor.Ink.Components.Text>
+</Box>
+
+@code {
+    [Parameter] public string[] Transcript { get; set; } = [];
+    [Parameter] public string Status { get; set; } = "Starting the output session";
+}

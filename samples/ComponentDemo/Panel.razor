@@ -1,0 +1,143 @@
+@using Blazor.Ink
+@using Blazor.Ink.Components
+@using Facebook.Yoga
+@using Overflow = Blazor.Ink.Overflow
+@using Microsoft.AspNetCore.Components
+@using static ComponentDemo.ShowcaseState
+
+<Box Width="@((Length)State.InnerColumns)" FlexDirection="@YGFlexDirection.Column" Gap="1"
+     Style="@(new BoxStyle { FlexShrink = 0 })">
+    @switch (State.Page)
+    {
+        case "Chat":
+            @if (State.Messages.Count == 0)
+            {
+                <Box FlexDirection="@YGFlexDirection.Column" Style="@(new BoxStyle { AlignItems = YGAlign.Center, PaddingY = 1 })">
+                    <Blazor.Ink.Components.Text Bold="true" Color="@Accent">@("██╗███╗   ██╗██╗  ██╗\n██║████╗  ██║██║ ██╔╝\n██║██╔██╗ ██║█████╔╝\n██║██║╚██╗██║██╔═██╗\n██║██║ ╚████║██║  ██╗\n╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝")</Blazor.Ink.Components.Text>
+                    <Blazor.Ink.Components.Text Color="@Muted">A Lela-inspired Razor terminal app</Blazor.Ink.Components.Text>
+                </Box>
+            }
+            else
+            {
+                @foreach (var message in State.Messages)
+                {
+                    <Box FlexDirection="@YGFlexDirection.Column" Gap="1" Style="@(new BoxStyle { MarginBottom = 1 })">
+                        <Box Width="@Length.Percent(75)" FlexDirection="@YGFlexDirection.Column"
+                             Style="@(new BoxStyle { AlignSelf = YGAlign.FlexEnd })">
+                            <Blazor.Ink.Components.Text Bold="true" Color="@Muted">You</Blazor.Ink.Components.Text>
+                            <Blazor.Ink.Components.Text>@message</Blazor.Ink.Components.Text>
+                        </Box>
+                        <Box Width="@Length.Percent(90)" FlexDirection="@YGFlexDirection.Column" Gap="1">
+                            <Blazor.Ink.Components.Text Bold="true" Color="@Accent">Blazor.Ink</Blazor.Ink.Components.Text>
+                            <Blazor.Ink.Components.Text Italic="true" Color="@Muted">
+                                @(State.Thinking ? "▾ Thinking · Ctrl+T hides it" : "▸ Thinking hidden · Ctrl+T shows it")
+                            </Blazor.Ink.Components.Text>
+                            @if (State.Thinking)
+                            {
+                                <Blazor.Ink.Components.Text Italic="true" Color="@Muted">This is local demo text, not a model response.</Blazor.Ink.Components.Text>
+                            }
+                            <Blazor.Ink.Components.Text>Box and Text rendered your message. Explore all six components with Ctrl+N.</Blazor.Ink.Components.Text>
+                        </Box>
+                    </Box>
+                }
+            }
+            break;
+        case "Text":
+            <Blazor.Ink.Components.Text><Blazor.Ink.Components.Text Bold="true">Bold</Blazor.Ink.Components.Text> · <Blazor.Ink.Components.Text Italic="true">italic</Blazor.Ink.Components.Text> · <Blazor.Ink.Components.Text Underline="true">underline</Blazor.Ink.Components.Text> · <Blazor.Ink.Components.Text Strikethrough="true">strikethrough</Blazor.Ink.Components.Text></Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text><Blazor.Ink.Components.Text DimColor="true">dim</Blazor.Ink.Components.Text> · <Blazor.Ink.Components.Text Inverse="true"> inverse </Blazor.Ink.Components.Text> · <Blazor.Ink.Components.Text Color="@Accent">hex color</Blazor.Ink.Components.Text> · <Blazor.Ink.Components.Text BackgroundColor="blue"> background </Blazor.Ink.Components.Text></Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text>Nested: <Blazor.Ink.Components.Text Color="green">green <Blazor.Ink.Components.Text Bold="true">and bold</Blazor.Ink.Components.Text></Blazor.Ink.Components.Text></Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text>Unicode: 你好 · é · 👩‍💻 · 👍🏽 · 🇺🇸</Blazor.Ink.Components.Text>
+            @foreach (var wrap in Enum.GetValues<TextWrap>())
+            {
+                <Box Gap="1">
+                    <Box Width="@((Length)14)" Style="@(new BoxStyle { FlexShrink = 0 })">
+                        <Blazor.Ink.Components.Text Color="@Muted">@wrap</Blazor.Ink.Components.Text>
+                    </Box>
+                    <Box Width="@((Length)Math.Min(36, Math.Max(1, State.InnerColumns - 15)))">
+                        <Blazor.Ink.Components.Text Wrap="@wrap">A long line demonstrates wrapping and truncation in a narrow box.</Blazor.Ink.Components.Text>
+                    </Box>
+                </Box>
+            }
+            break;
+        case "Box":
+            <Blazor.Ink.Components.Text Color="@Muted">Flexbox, borders, spacing, backgrounds and clipping.</Blazor.Ink.Components.Text>
+            <Box Style="@(new BoxStyle { FlexWrap = YGWrap.Wrap, Gap = 1 })">
+                @foreach (var border in Enum.GetValues<BorderStyle>())
+                {
+                    <Box BorderStyle="@border" Style="@(new BoxStyle { BorderColor = Accent, PaddingX = 1, FlexShrink = 0 })">
+                        <Blazor.Ink.Components.Text>@border</Blazor.Ink.Components.Text>
+                    </Box>
+                }
+            </Box>
+            <Box BorderStyle="@BorderStyle.Round" Padding="1" Gap="1">
+                <Box FlexGrow="1" Style="@(new BoxStyle { BackgroundColor = "#252832", PaddingX = 1 })">
+                    <Blazor.Ink.Components.Text>flexGrow 1</Blazor.Ink.Components.Text>
+                </Box>
+                <Box Width="@((Length)9)" Style="@(new BoxStyle { BackgroundColor = "blue", PaddingX = 1, FlexShrink = 0 })">
+                    <Blazor.Ink.Components.Text>fixed</Blazor.Ink.Components.Text>
+                </Box>
+            </Box>
+            <Box Style="@(new BoxStyle { JustifyContent = YGJustify.SpaceBetween })">
+                <Blazor.Ink.Components.Text>Left</Blazor.Ink.Components.Text>
+                <Blazor.Ink.Components.Text>Center</Blazor.Ink.Components.Text>
+                <Blazor.Ink.Components.Text>Right</Blazor.Ink.Components.Text>
+            </Box>
+            <Box Gap="1">
+                <Box Width="@Length.Percent(50)" Style="@(new BoxStyle { BackgroundColor = "blue", MarginRight = 1 })">
+                    <Blazor.Ink.Components.Text>50% width</Blazor.Ink.Components.Text>
+                </Box>
+                <Blazor.Ink.Components.Text>percentage</Blazor.Ink.Components.Text>
+            </Box>
+            <Box Height="@((Length)3)" BorderStyle="@BorderStyle.Classic" Style="@(new BoxStyle { Overflow = Overflow.Hidden })">
+                <Blazor.Ink.Components.Text>@("Visible row\nHidden clipped row")</Blazor.Ink.Components.Text>
+            </Box>
+            <Blazor.Ink.Components.Text Color="@Muted">↑ / ↓ scroll this viewport using ContentOffsetY.</Blazor.Ink.Components.Text>
+            break;
+        case "Static":
+            <Blazor.Ink.Components.Text>Completed tasks print once above the live UI.</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text>Enter appends a task · @State.Tasks.Count completed</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text Color="@Muted">Static stays mounted across pages. Clearing live output never rewrites its history.</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text Color="@Accent">@("<Static TItem=\"string\" Items=\"tasks\">…</Static>")</Blazor.Ink.Components.Text>
+            break;
+        case "Transform":
+            <Blazor.Ink.Components.Text Color="@Muted">Transform changes rendered strings, not component nodes.</Blazor.Ink.Components.Text>
+            <Transform Apply="@((text, _) => text.ToUpperInvariant())">
+                <Blazor.Ink.Components.Text>uppercase · transformed output</Blazor.Ink.Components.Text>
+            </Transform>
+            <Transform Apply="@((text, index) => $"{index + 1}. {text}")">
+                <Blazor.Ink.Components.Text>@("First rendered line\nSecond rendered line")</Blazor.Ink.Components.Text>
+            </Transform>
+            <Blazor.Ink.Components.Text Color="@Muted">Use unstyled children when transforming casing; ANSI escape codes contain letters too.</Blazor.Ink.Components.Text>
+            break;
+        case "Newline":
+            <Blazor.Ink.Components.Text>First<Newline />Second<Newline Count="2" />Third</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text Color="@Muted">Newline belongs inside Text. Count defaults to 1; Count=2 adds a blank row.</Blazor.Ink.Components.Text>
+            break;
+        case "Spacer":
+            <Blazor.Ink.Components.Text Color="@Muted">Spacer consumes free space in its parent's flex direction.</Blazor.Ink.Components.Text>
+            <Box BorderStyle="@BorderStyle.Round" Style="@(new BoxStyle { PaddingX = 1 })">
+                <Blazor.Ink.Components.Text>Left</Blazor.Ink.Components.Text><Spacer /><Blazor.Ink.Components.Text>Right</Blazor.Ink.Components.Text>
+            </Box>
+            <Box Height="@((Length)7)" BorderStyle="@BorderStyle.Round" FlexDirection="@YGFlexDirection.Column"
+                 Style="@(new BoxStyle { PaddingX = 1 })">
+                <Blazor.Ink.Components.Text>Top</Blazor.Ink.Components.Text><Spacer /><Blazor.Ink.Components.Text>Bottom</Blazor.Ink.Components.Text>
+            </Box>
+            break;
+        case "Runtime":
+            <Blazor.Ink.Components.Text Bold="true" Color="@Accent">InkSession + InkInput</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text>Input available: @State.InputAvailable · Raw mode: @State.RawModeSupported</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text>@State.LastInput</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text Color="green">@State.Status</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text>o stdout · WriteAsync</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text>e stderr · WriteErrorAsync</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text>c clear live · ClearAsync</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text>f flush · AwaitFlushAsync</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text>r rerender · RerenderAsync</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text Color="@Muted">Try keys or paste. Esc / Ctrl+C requests exit; subscriptions are disposed with the component.</Blazor.Ink.Components.Text>
+            break;
+    }
+</Box>
+
+@code {
+    [Parameter] public ShowcaseState State { get; set; } = new();
+}

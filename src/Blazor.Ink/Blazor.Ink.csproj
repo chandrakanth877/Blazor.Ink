@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <PackageId>Blazor.Ink</PackageId>
+    <AssemblyName>Blazor.Ink</AssemblyName>
+    <RootNamespace>Blazor.Ink</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <Authors>Blazor.Ink contributors</Authors>
+    <Description>Blazor-native terminal UI preview. Not yet full Ink 8 parity.</Description>
+    <PackageTags>blazor;razor;terminal;cli;tui;flexbox;yoga</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl Condition="'$(RepositoryUrl)' == ''">https://github.com/chandrakanth877/Blazor.Ink</RepositoryUrl>
+    <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>portable</DebugType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <NoWarn>$(NoWarn);BL0006</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="" />
+    <None Include="../../LICENSE" Pack="true" PackagePath="" />
+    <None Include="../../THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="" />
+    <InternalsVisibleTo Include="Blazor.Ink.Checks" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Yoga.Net" Version="3.2.3" />
+    <PackageReference Include="Wcwidth" Version="4.0.1" />
+  </ItemGroup>
+</Project>

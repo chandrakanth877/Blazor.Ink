@@ -1,0 +1,150 @@
+name: Build and publish Blazor.Ink
+
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: python3
+          - os: macos-latest
+            python: python3
+          - os: windows-latest
+            python: python
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHON: ${{ matrix.python }}
+      RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
+    steps:
+      - name: Checkout the event commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install .NET 8 and the pinned .NET 10 SDK
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: 8.0.x
+          global-json-file: global.json
+      - name: Verify checks, samples, package, and clean consumer
+        run: |
+          mkdir -p artifacts/verification
+          bash scripts/verify.sh 2>&1 | tee artifacts/verification/verify.log
+      - name: Verify POSIX native input
+        if: runner.os != 'Windows'
+        run: bash scripts/check-native-input.sh 2>&1 | tee artifacts/verification/native-input.log
+      - name: Verify Windows native input
+        if: runner.os == 'Windows'
+        run: |
+          for framework in net8.0 net10.0; do
+            dotnet run --project tests/Blazor.Ink.Checks -c Release -f "$framework" --no-build -- --conpty-input \
+              2>&1 | tee -a artifacts/verification/native-input.log
+          done
+      - name: Preserve validation evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: validation-${{ matrix.os }}
+          path: artifacts/verification/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Preserve the single release build
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: nuget-packages
+          path: |
+            artifacts/packages/Blazor.Ink.*.nupkg
+            artifacts/packages/Blazor.Ink.*.snupkg
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish approved release
+    needs: verify
+    if: github.repository == 'chandrakanth877/Blazor.Ink' && github.event_name == 'release' && vars.NUGET_PUBLISH_ENABLED == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    environment: nuget
+    concurrency:
+      group: publish-blazor-ink
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        shell: bash
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - name: Checkout the same release commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install the pinned SDK for inspection and push
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          global-json-file: global.json
+      - name: Download the verified build without rebuilding
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: nuget-packages
+          path: artifacts/packages
+      - name: Check artifact identity before requesting credentials
+        id: package
+        run: |
+          version="$(dotnet msbuild src/Blazor.Ink/Blazor.Ink.csproj -getProperty:Version | tr -d '\r')"
+          python scripts/check-package.py "artifacts/packages/Blazor.Ink.$version.nupkg" \
+            --symbols "artifacts/packages/Blazor.Ink.$version.snupkg" --tag "$RELEASE_TAG" \
+            --repository "https://github.com/$GITHUB_REPOSITORY" --commit "$(git rev-parse HEAD)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Obtain a short-lived NuGet key using OIDC
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+      - name: Push the already verified package and symbols
+        env:
+          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "artifacts/packages/Blazor.Ink.$PACKAGE_VERSION.nupkg" \
+            --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
+      - name: Download and verify the repository-signed publication
+        env:
+          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          mkdir -p artifacts/published
+          package="artifacts/published/Blazor.Ink.$PACKAGE_VERSION.nupkg"
+          curl --fail --show-error --location --retry 12 --retry-delay 10 --retry-all-errors \
+            --max-time 30 \
+            "https://api.nuget.org/v3-flatcontainer/blazor.ink/$PACKAGE_VERSION/blazor.ink.$PACKAGE_VERSION.nupkg" \
+            --output "$package"
+          dotnet nuget verify "$package" --all --verbosity normal \
+            | tee artifacts/published/signature-verification.log
+          python scripts/check-package.py "$package" --published --tag "$RELEASE_TAG" \
+            --repository "https://github.com/$GITHUB_REPOSITORY" --commit "$(git rev-parse HEAD)"
+      - name: Preserve the verified repository-signed package and log
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: repository-signed-nuget
+          path: artifacts/published/
+          if-no-files-found: error
+          retention-days: 90

@@ -1,0 +1,59 @@
+@using Blazor.Ink
+@using Microsoft.AspNetCore.Components
+@implements IDisposable
+@inject InkInput Input
+@inject InkSession Session
+
+<App State="@State" />
+
+@code {
+    [Parameter] public ShowcaseState State { get; set; } = new();
+    private InkInputSubscription? keys, paste;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.InputAvailable = Input.IsAvailable;
+        State.RawModeSupported = Input.IsRawModeSupported;
+        keys = Input.Subscribe(HandleAsync);
+        paste = Input.SubscribePaste(async text =>
+        {
+            State.Paste(text);
+            await MeasureAsync();
+            StateHasChanged();
+        });
+        await MeasureAsync();
+    }
+
+    private async Task HandleAsync(InkInputEvent input)
+    {
+        foreach (var item in State.Expand(input))
+        {
+            var action = State.Handle(item);
+            await MeasureAsync();
+            StateHasChanged();
+            switch (action)
+            {
+                case DemoAction.Exit: Session.RequestExit(); return;
+                case DemoAction.Stdout: await Session.WriteAsync("Demo stdout"); break;
+                case DemoAction.Stderr: await Session.WriteErrorAsync("Demo stderr"); break;
+                case DemoAction.Clear: await Session.ClearAsync(); break;
+                case DemoAction.Flush: await Session.AwaitFlushAsync(); break;
+                case DemoAction.Rerender:
+                    await Session.RerenderAsync(ParameterView.FromDictionary(new Dictionary<string, object?> { ["State"] = State }));
+                    break;
+            }
+        }
+    }
+
+    private async Task MeasureAsync()
+    {
+        // ponytail: remeasure this small demo headlessly; use element metrics when Blazor.Ink exposes them.
+        var content = await InkHost.RenderToStringAsync<Panel>(State.InnerColumns,
+            ParameterView.FromDictionary(new Dictionary<string, object?> { ["State"] = State }));
+        State.ContentRows = content.Split('\n').Length;
+        State.MaxScroll = Math.Max(0, State.ContentRows - Math.Max(1, State.ViewportRows));
+        State.ClampScroll();
+    }
+
+    public void Dispose() { keys?.Dispose(); paste?.Dispose(); }
+}

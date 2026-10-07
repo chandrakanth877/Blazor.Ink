@@ -1,0 +1,44 @@
+@using Microsoft.AspNetCore.Components
+@using Blazor.Ink
+@using Blazor.Ink.Components
+@using Facebook.Yoga
+
+<Box Style="@outer">
+    @if (ShowStatic)
+    {
+        <Static @key="Generation" TItem="string" Items="@Items"
+                Style="@(new BoxStyle { Display = StaticHidden ? YGDisplay.None : null })">
+            <ChildContent Context="item">
+                @if (item == "blank")
+                {
+                    <Box Height="@((Length)1)" />
+                }
+                else
+                {
+                    <Blazor.Ink.Components.Text>@item</Blazor.Ink.Components.Text>
+                }
+            </ChildContent>
+        </Static>
+    }
+    @if (BlankDynamic >= 0)
+    {
+        <Box Height="@((Length)BlankDynamic)" />
+    }
+    else
+    {
+        <Blazor.Ink.Components.Text>@Live</Blazor.Ink.Components.Text>
+    }
+</Box>
+
+@code {
+    [Parameter] public string[] Items { get; set; } = ["first"];
+    [Parameter] public string Live { get; set; } = "live";
+    [Parameter] public int BlankDynamic { get; set; } = -1;
+    [Parameter] public bool ShowStatic { get; set; } = true;
+    [Parameter] public int Generation { get; set; }
+    [Parameter] public bool Hidden { get; set; }
+    [Parameter] public bool StaticHidden { get; set; }
+    [Parameter] public string? Background { get; set; }
+    private BoxStyle outer => new() { FlexDirection = YGFlexDirection.Column, BackgroundColor = Background,
+        Display = Hidden ? YGDisplay.None : YGDisplay.Flex };
+}

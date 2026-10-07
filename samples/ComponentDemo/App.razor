@@ -1,0 +1,76 @@
+@using Blazor.Ink
+@using Blazor.Ink.Components
+@using Facebook.Yoga
+@using Overflow = Blazor.Ink.Overflow
+@using Microsoft.AspNetCore.Components
+@using static ComponentDemo.ShowcaseState
+
+<Static TItem="string" Items="@State.Tasks">
+    <ChildContent Context="task"><Blazor.Ink.Components.Text Color="green">@task</Blazor.Ink.Components.Text></ChildContent>
+</Static>
+<Box Width="@((Length)State.Columns)" Height="@(Snapshot ? null : (Length?)(State.Rows - 1))"
+     Style="@(new BoxStyle { FlexDirection = YGFlexDirection.Column, PaddingX = State.Padding, Overflow = Overflow.Hidden })">
+    @if (!Snapshot && (State.Columns < 20 || State.ViewportRows < 1))
+    {
+        <Blazor.Ink.Components.Text>Terminal too small. Enlarge it or use --snapshot. Esc exits.</Blazor.Ink.Components.Text>
+    }
+    else
+    {
+        <Box Height="@((Length)1)" Style="@(new BoxStyle { FlexShrink = 0 })">
+            <Blazor.Ink.Components.Text Bold="true" Color="@Accent" Wrap="@TextWrap.Truncate">
+                @($"INK.NET / component showcase · {State.Columns}×{State.Rows}")
+            </Blazor.Ink.Components.Text>
+        </Box>
+        <Box Height="@((Length)State.NavigationRows)"
+             Style="@(new BoxStyle { FlexWrap = YGWrap.Wrap, ColumnGap = 1, RowGap = 0, FlexShrink = 0, MarginBottom = 1 })">
+            @foreach (var name in Pages)
+            {
+                <Box @key="name" Style="@(new BoxStyle { FlexShrink = 0 })">
+                    <Blazor.Ink.Components.Text Color="@(name == State.Page ? Accent : Muted)" Bold="@(name == State.Page)">
+                        @(name == State.Page ? $"[{name}]" : name)
+                    </Blazor.Ink.Components.Text>
+                </Box>
+            }
+        </Box>
+        <Box Height="@(Snapshot ? null : (Length?)State.ViewportRows)"
+             Style="@(new BoxStyle { FlexDirection = YGFlexDirection.Column, FlexShrink = 0,
+                 Overflow = Snapshot ? Overflow.Visible : Overflow.Hidden, ContentOffsetY = Snapshot ? 0 : State.Offset })">
+            <Panel State="@State" />
+        </Box>
+        @if (State.Page == "Chat")
+        {
+            <Box FlexDirection="@YGFlexDirection.Column" Style="@(new BoxStyle { FlexShrink = 0, MarginTop = 1 })">
+                <Box Height="@((Length)1)">
+                    <Blazor.Ink.Components.Text Color="@Muted" Wrap="@TextWrap.Truncate">Local demo · no AI provider or file access</Blazor.Ink.Components.Text>
+                </Box>
+                @if (State.Documents.Count > 0)
+                {
+                    <Box Height="@((Length)1)">
+                        <Blazor.Ink.Components.Text BackgroundColor="#252832" Wrap="@TextWrap.Truncate">
+                            @string.Join(" ", State.Documents.Select(document => $"▣ {document}"))
+                        </Blazor.Ink.Components.Text>
+                    </Box>
+                }
+                <Box Height="@((Length)4)" BorderStyle="@BorderStyle.Round"
+                     Style="@(new BoxStyle { FlexDirection = YGFlexDirection.Column, BorderColor = Accent, PaddingX = 1 })">
+                    <Blazor.Ink.Components.Text Wrap="@TextWrap.TruncateStart" Color="@(State.Draft.Length > 0 ? null : Muted)">
+                        @(State.Draft.Length > 0 ? $"❯ {State.Draft} █" : "❯ Ask Blazor.Ink anything…")
+                    </Blazor.Ink.Components.Text>
+                    <Blazor.Ink.Components.Text Color="@Muted" Wrap="@TextWrap.Truncate">/add path · /clear · Enter send</Blazor.Ink.Components.Text>
+                </Box>
+            </Box>
+        }
+        <Box Height="@((Length)2)" FlexDirection="@YGFlexDirection.Column"
+             Style="@(new BoxStyle { FlexShrink = 0, MarginTop = 1 })">
+            <Blazor.Ink.Components.Text Color="@Muted" Wrap="@TextWrap.Truncate">Ctrl+N/P pages · ↑↓ scroll</Blazor.Ink.Components.Text>
+            <Blazor.Ink.Components.Text Color="@Muted" Wrap="@TextWrap.Truncate">
+                @(State.Page == "Chat" ? "Esc / Ctrl+C exit · Ctrl+T thinking" : "Esc / Ctrl+C exit")
+            </Blazor.Ink.Components.Text>
+        </Box>
+    }
+</Box>
+
+@code {
+    [Parameter] public ShowcaseState State { get; set; } = new();
+    [Parameter] public bool Snapshot { get; set; }
+}

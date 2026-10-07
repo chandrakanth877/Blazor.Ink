@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "Wcwidth": {
+        "type": "Direct",
+        "requested": "[4.0.1, )",
+        "resolved": "4.0.1",
+        "contentHash": "PMU8u3pGf9nUkee39KMrB8qqId7u7kyGWaZpOh9E4Mal3xChq+relS/hHQOicGAswyzi7F5DjXjac0mTnRBX8Q=="
+      },
+      "Yoga.Net": {
+        "type": "Direct",
+        "requested": "[3.2.3, )",
+        "resolved": "3.2.3",
+        "contentHash": "g7maV1ZBC+kpeExf37jErIMTe559NmAhs/GUSO016mG90vdPQFFLV/ZyOR9+kYk5Zc9TL82QUAP6RJ0olTCYIg=="
+      }
+    },
+    "net8.0": {
+      "Wcwidth": {
+        "type": "Direct",
+        "requested": "[4.0.1, )",
+        "resolved": "4.0.1",
+        "contentHash": "PMU8u3pGf9nUkee39KMrB8qqId7u7kyGWaZpOh9E4Mal3xChq+relS/hHQOicGAswyzi7F5DjXjac0mTnRBX8Q=="
+      },
+      "Yoga.Net": {
+        "type": "Direct",
+        "requested": "[3.2.3, )",
+        "resolved": "3.2.3",
+        "contentHash": "g7maV1ZBC+kpeExf37jErIMTe559NmAhs/GUSO016mG90vdPQFFLV/ZyOR9+kYk5Zc9TL82QUAP6RJ0olTCYIg=="
+      }
+    }
+  }
+}

@@ -1,0 +1,64 @@
+@using Microsoft.AspNetCore.Components
+@switch (Case)
+{
+    case "border":
+        <ink-box width="5" borderStyle="single"><ink-text>é👩‍💻</ink-text></ink-box>
+        break;
+    case "row":
+        <ink-box><ink-box width="4"><ink-text>你好</ink-text></ink-box><ink-text>|</ink-text></ink-box>
+        break;
+    case "column":
+        <ink-box flexDirection="column" gap="1"><ink-text>A</ink-text><ink-text>B</ink-text></ink-box>
+        break;
+    case "wrap":
+        <ink-box width="5"><ink-text>helloworld</ink-text></ink-box>
+        break;
+    case "truncate":
+        <ink-box width="4"><ink-text wrap="truncate">abcdef</ink-text></ink-box>
+        break;
+    case "clip":
+        <ink-box width="3" height="1" overflow="hidden"><ink-box width="6" flexShrink="0"><ink-text>abcdef</ink-text></ink-box></ink-box>
+        break;
+    case "padding":
+        <ink-box padding="1"><ink-text>x</ink-text></ink-box>
+        break;
+    case "percent":
+        <ink-box width="10"><ink-box width="50%"><ink-text>abcde</ink-text></ink-box><ink-text>|</ink-text></ink-box>
+        break;
+    case "hidden":
+        <ink-box><ink-box display="none"><ink-text>hidden</ink-text></ink-box><ink-text>ok</ink-text></ink-box>
+        break;
+    case "nested":
+        <ink-text>A<ink-text>B</ink-text>C</ink-text>
+        break;
+    case "wide-truncate":
+        <ink-box width="5"><ink-text wrap="truncate">你好世界</ink-text><ink-box flexShrink="0"><ink-text>|</ink-text></ink-box></ink-box>
+        break;
+    case "box-background":
+        <ink-box width="4" height="2" backgroundColor="blue"><ink-text>x</ink-text></ink-box>
+        break;
+    case "border-color":
+        <ink-box width="3" borderStyle="single" borderColor="red"><ink-text>x</ink-text></ink-box>
+        break;
+    case "clip-wide":
+        <ink-box width="2" height="1" overflowX="hidden" contentOffsetX="1">
+            <ink-box width="4" flexShrink="0"><ink-text backgroundColor="blue">你好</ink-text></ink-box>
+        </ink-box>
+        break;
+    case "root-fragment":
+        <ink-text>A</ink-text><ink-text>B</ink-text>
+        break;
+    case "max-truncate":
+        <ink-box><ink-box maxWidth="4" flexShrink="0"><ink-text wrap="truncate">你好世界</ink-text></ink-box><ink-text>|</ink-text></ink-box>
+        break;
+    case "huge-height":
+        <ink-box height="2147483648"><ink-text>x</ink-text></ink-box>
+        break;
+    case "styled-accent":
+        <ink-text><ink-text color="blue">e</ink-text><ink-text color="red">́X</ink-text></ink-text>
+        break;
+}
+
+@code {
+    [Parameter] public string Case { get; set; } = "";
+}
