@@ -19,16 +19,6 @@ try
         Environment.GetEnvironmentVariable("TERM") != "dumb";
     var columns = options.Columns ?? 80;
     var rows = options.Rows ?? 24;
-    if (terminal)
-    {
-        try
-        {
-            if (options.Columns is null && Console.WindowWidth > 0) columns = Console.WindowWidth;
-            if (options.Rows is null && Console.WindowHeight > 1) rows = Console.WindowHeight;
-        }
-        catch (IOException) { /* Use the explicit/default dimensions if the terminal cannot report its size. */ }
-        catch (PlatformNotSupportedException) { }
-    }
     CommandLine.ValidateSize(columns, rows);
     if (options.Snapshot || (!options.Scripted && !terminal))
     {
@@ -49,7 +39,8 @@ try
     using var timeout = options.Scripted ? new CancellationTokenSource(TimeSpan.FromSeconds(15)) : null;
     await using var session = await InkHost.RenderAsync<LiveApp>(new()
     {
-        Columns = columns, Rows = rows, Stdin = source, Interactive = !options.Scripted,
+        Columns = options.Scripted ? columns : options.Columns,
+        Rows = options.Scripted ? rows : options.Rows, Stdin = source, Interactive = !options.Scripted,
         IncrementalRendering = true, ExitOnCtrlC = false
     }, ParameterView.FromDictionary(new Dictionary<string, object?> { ["State"] = new ShowcaseState(columns, rows, options.Page) }),
         cancellationToken: timeout?.Token ?? default);

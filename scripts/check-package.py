@@ -5,6 +5,7 @@ import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from zipfile import ZipFile
+from version import package_version
 
 ROOT = Path(__file__).resolve().parent.parent
 FRAMEWORKS = {"net8.0", "net10.0"}
@@ -22,7 +23,7 @@ def check_package(path, *, tag=None, repository=None, commit=None, symbols=None,
         item.attrib["Include"]: item.attrib["Version"]
         for item in project.findall(".//PackageReference")
     }
-    version = ET.parse(ROOT / "Directory.Build.props").findtext(".//Version")
+    version = package_version()
     with ZipFile(path) as archive:
         names = set(archive.namelist())
         require([name for name in names if name.endswith(".nuspec")] == ["Blazor.Ink.nuspec"],

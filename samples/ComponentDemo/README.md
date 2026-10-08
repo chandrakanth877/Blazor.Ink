@@ -21,8 +21,12 @@ two-framework validation.
 ## Pages and controls
 
 Ctrl+N/P changes pages, Up/Down scrolls, and Esc/Ctrl+C exits. A highlighted page
-name and visible keyboard help do not rely on color alone. Terminal size is read
-once at startup; restart after resizing, or supply `--columns` and `--rows`.
+name and visible keyboard help do not rely on color alone. Interactive terminal
+size follows window resizing automatically, including content remeasurement and
+scroll clamping. `--columns` and `--rows` pin the supplied dimension; omit them to
+follow the terminal. Snapshots/scripted runs default to a fixed 80×24.
+Resizing clears and repaints the visible viewport without purging scrollback;
+history still visible above the app may disappear from that viewport.
 
 | Page | Demonstrates | Extra controls |
 |---|---|---|
@@ -79,6 +83,8 @@ history, runtime actions, short-terminal layout, CLI validation and input failur
 Full verification runs both frameworks and preserves the existing independent
 NuGet consumer gate. Snapshots and scripted output are saved under
 `artifacts/component-demo/`.
+On macOS/Linux it also runs the stdlib Python PTY resize check, covering automatic
+dimensions, overrides, all pages, tiny terminals, preserved chat state and exit.
 
 Input subscriptions are disposed with the component; sessions restore terminal
 settings and cursor visibility. The native gate is platform-specific:
@@ -86,6 +92,6 @@ Windows/Linux remain unverified unless their own gates run.
 
 This sample covers the currently implemented components and runtime APIs, not
 every combination of the 66 style fields. It adds no focus manager, cursor intent,
-animation scheduler, resize service, accessibility API, Markdown renderer, tool
+animation scheduler, accessibility API, Markdown renderer, tool
 execution or provider integration. Scroll bounds use a small headless render of
 the content because the preview does not yet expose element metrics.

@@ -15,9 +15,33 @@ internal class TerminalProbe(int columns = 80, int rows = 24) : TextWriter
     private readonly List<string> scrollback = [];
     private int x, y;
     private bool wrapPending;
+    public string ScreenText => string.Join('\n', screen.Select(Line)).TrimEnd('\n');
     public string VisibleText => string.Join('\n', scrollback.Concat(screen.Select(Line)).Reverse()
         .SkipWhile(line => line == "").Reverse());
     private static string Line(string?[] cells) => string.Concat(cells.Select(cell => cell ?? " ")).TrimEnd(' ');
+
+    public void Resize(int newColumns, int newRows)
+    {
+        // This oracle crops cells; PTY checks separately exercise real terminal resize notifications.
+        while (screen.Count > newRows)
+        {
+            scrollback.Add(Line(screen[0]));
+            screen.RemoveAt(0);
+            y = Math.Max(0, y - 1);
+        }
+        for (var row = 0; row < screen.Count; row++)
+        {
+            var cells = screen[row];
+            Array.Resize(ref cells, newColumns);
+            screen[row] = cells;
+        }
+        while (screen.Count < newRows) screen.Add(new string?[newColumns]);
+        columns = newColumns;
+        rows = newRows;
+        x = Math.Min(x, columns - 1);
+        y = Math.Min(y, rows - 1);
+        wrapPending = false;
+    }
 
     public override Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
     {
@@ -41,7 +65,11 @@ internal class TerminalProbe(int columns = 80, int rows = 24) : TextWriter
                 {
                     case 'A': y = Math.Max(0, y - value); break;
                     case 'B': y = Math.Min(rows - 1, y + value); break;
+                    case 'H' when parameters == "": x = y = 0; break;
                     case 'K' when value == 2: Array.Clear(screen[y]); break;
+                    case 'J' when value == 2:
+                        foreach (var row in screen) Array.Clear(row);
+                        break;
                     case 'J' when value == 0:
                         Array.Clear(screen[y], x, columns - x);
                         for (var row = y + 1; row < rows; row++) Array.Clear(screen[row]);

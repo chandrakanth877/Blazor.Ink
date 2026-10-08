@@ -8,6 +8,7 @@ internal sealed class TerminalWriter(InkOptions options, bool interactive, Cance
     private int pending, characters;
     private TerminalFrame live = TerminalFrame.Empty;
     private bool started;
+    private (int Columns, int Rows) dimensions;
     public Exception? Error { get; private set; }
 
     private Task Queue(Func<Task> operation, int size = 0, bool cleanup = false)
@@ -44,23 +45,31 @@ internal sealed class TerminalWriter(InkOptions options, bool interactive, Cance
     public Task DisplayAsync(TerminalUpdate update) => Queue(async () =>
     {
         var next = update.Live;
-        if (interactive && next.Height >= options.Rows)
+        if (interactive && next.Height >= update.Rows)
         {
-            var lines = next.Lines.TakeLast(options.Rows - 1).ToArray();
+            var lines = next.Lines.TakeLast(update.Rows - 1).ToArray();
             next = new(string.Join('\n', lines), lines.Length);
         }
         var text = "";
+        var resized = started && dimensions != (update.Columns, update.Rows);
         if (!started)
         {
             started = true;
             // No input/cursor query yet: preserve any partial history and establish column zero.
             if (interactive) text = "\r\n" + (options.HideCursor ? "\x1b[?25l" : "");
         }
+        dimensions = (update.Columns, update.Rows);
         if (interactive)
         {
+            if (resized)
+            {
+                // ponytail: repaint after reflow; track live-region cursors if visible history must survive.
+                text += "\x1b[2J\x1b[H";
+                live = TerminalFrame.Empty;
+            }
             var appended = string.Concat(update.Static.Select(frame => Rows(frame, true)));
-            if (appended.Length == 0 && next == live) { await Write(options.Stdout, text, cancellation); return; }
-            if (options.IncrementalRendering && appended.Length == 0 && next.Height == live.Height)
+            if (!resized && appended.Length == 0 && next == live) { await Write(options.Stdout, text, cancellation); return; }
+            if (!resized && options.IncrementalRendering && appended.Length == 0 && next.Height == live.Height)
             {
                 var oldLines = live.Lines;
                 var newLines = next.Lines;

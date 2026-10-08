@@ -1,5 +1,6 @@
 """One framework-free regression check for release packaging and its failure gates."""
 import runpy
+import os
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -8,7 +9,7 @@ from zipfile import ZipFile
 module = runpy.run_path(str(Path(__file__).with_name("check-package.py")))
 check_package = module["check_package"]
 root = module["ROOT"]
-version = ET.parse(root / "Directory.Build.props").findtext(".//Version")
+version = module["package_version"]()
 dependencies = {
     item.attrib["Include"]: item.attrib["Version"]
     for item in ET.parse(root / "src/Blazor.Ink/Blazor.Ink.csproj").findall(".//PackageReference")
@@ -73,4 +74,15 @@ with tempfile.TemporaryDirectory() as directory:
     assert check_package(package, published=True)
     restored.write_bytes(package.read_bytes())
     assert check_package(package, restored_cache=str(Path(directory) / "cache"))
+    override = ".".join(version.split(".")[:2]) + ".42"
+    previous = os.environ.get("PACKAGE_VERSION")
+    os.environ["PACKAGE_VERSION"] = override
+    try:
+        write(MANIFEST.replace(f"<version>{version}</version>", f"<version>{override}</version>"))
+        assert check_package(package, tag=f"v{override}") == override
+    finally:
+        if previous is None:
+            os.environ.pop("PACKAGE_VERSION", None)
+        else:
+            os.environ["PACKAGE_VERSION"] = previous
 print("PASS package inspection and release failure gates")

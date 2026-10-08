@@ -24,6 +24,71 @@ internal static class SessionChecks
 
         foreach (var incremental in new[] { false, true })
         {
+            var sink = new TerminalProbe();
+            await using var session = await InkHost.RenderAsync<StaticCases>(new()
+                { Stdout = sink, Stderr = sink, Interactive = true, IncrementalRendering = incremental },
+                P(("Live", "abcdefghij")));
+            Equal(80, session.Columns, "custom output defaults to 80 columns");
+            Equal(24, session.Rows, "custom output defaults to 24 rows");
+            var callbacks = new List<string>();
+            session.Resized += async () =>
+            {
+                callbacks.Add($"{session.Columns}x{session.Rows}");
+                // A callback-origin flush must not wait for the resize operation itself.
+                await session.AwaitFlushAsync();
+                callbacks.Add("flushed");
+            };
+            session.Resized += () => { callbacks.Add("second"); return Task.CompletedTask; };
+            sink.Resize(4, 3);
+            await session.ResizeAsync(4, 3).WaitAsync(TimeSpan.FromSeconds(5));
+            Equal("efgh\nij", sink.ScreenText, "width/height shrink relayouts the committed live tree");
+            Equal("4x3,flushed,second", string.Join(',', callbacks), "resize callbacks observe new dimensions and await in order");
+            var before = sink.Bytes.ToString();
+            await session.ResizeAsync(4, 3);
+            Equal(before, sink.Bytes.ToString(), "unchanged size does not redraw or notify");
+            Equal(3, callbacks.Count, "unchanged size does not invoke callbacks");
+            sink.Resize(20, 8);
+            await session.ResizeAsync(20, 8);
+            Equal("abcdefghij", sink.ScreenText, "growth reflows the full live tree");
+            Equal(1, sink.Bytes.ToString().Split("first", StringSplitOptions.None).Length - 1, "resize never replays consumed Static");
+            Equal(false, sink.Bytes.ToString().Contains("\x1b[3J"), "resize never clears scrollback");
+            var atGrowth = sink.Bytes.Length;
+            sink.Resize(21, 8);
+            await session.ResizeAsync(21, 8);
+            Equal(true, sink.Bytes.ToString(atGrowth, sink.Bytes.Length - atGrowth).Contains("\x1b[2J\x1b[H"),
+                "identical text still repaints when dimensions change");
+            await session.ExitAsync();
+            before = sink.Bytes.ToString();
+            await session.ResizeAsync(30, 10);
+            Equal(before, sink.Bytes.ToString(), "resize after exit cannot write to a released terminal");
+            await Throws<ArgumentOutOfRangeException>(() => session.ResizeAsync(0, 3), "invalid resize width rejected");
+        }
+
+        foreach (var options in new[] {
+            new InkOptions { Columns = 10 }, new InkOptions { Rows = 6 }, new InkOptions { Columns = 10, Rows = 6 }
+        })
+        {
+            var sink = new TerminalProbe();
+            await using var session = await InkHost.RenderAsync<Hello>(options with
+                { Stdout = sink, Stderr = sink, Interactive = true });
+            await session.ResizeAsync(20, 8);
+            Equal(options.Columns ?? 20, session.Columns, "explicit width stays pinned");
+            Equal(options.Rows ?? 8, session.Rows, "explicit height stays pinned");
+        }
+
+        var queuedResize = new GatedProbe(8, 6);
+        var resizeWriter = new TerminalWriter(new() { Stdout = queuedResize, Stderr = queuedResize }, true, default);
+        var oldFrame = resizeWriter.DisplayAsync(new(new("a\nb\nc\nd\ne\nf", 6), [], 8, 6));
+        await queuedResize.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var newFrame = resizeWriter.DisplayAsync(new(new("aa\nbb\ncc\ndd", 4), [], 4, 3));
+        queuedResize.Resize(4, 3);
+        queuedResize.Release.TrySetResult();
+        await Task.WhenAll(oldFrame, newFrame).WaitAsync(TimeSpan.FromSeconds(5));
+        Equal("cc\ndd", queuedResize.ScreenText, "queued frames use their own geometry and reset stale rows");
+        await resizeWriter.CloseAsync();
+
+        foreach (var incremental in new[] { false, true })
+        {
             var output = new TerminalProbe(12, 6);
             var error = new TerminalProbe(12, 6);
             var options = new InkOptions { Stdout = output, Stderr = error, Columns = 12, Rows = 6,

@@ -7,7 +7,8 @@ using System.Xml.Linq;
 namespace Blazor.Ink;
 
 // ponytail: rebuild committed snapshots in O(n); apply RenderBatch edits only if profiling warrants it.
-internal sealed class TerminalRenderer(IServiceProvider services, int columns, Func<TerminalUpdate, Task>? display = null)
+internal sealed class TerminalRenderer(IServiceProvider services, int columns, Func<TerminalUpdate, Task>? display = null,
+    int rows = 24)
     : Renderer(services, NullLoggerFactory.Instance)
 {
     public override Dispatcher Dispatcher { get; } = Dispatcher.CreateDefault();
@@ -31,6 +32,19 @@ internal sealed class TerminalRenderer(IServiceProvider services, int columns, F
 
     public Task RerenderAsync(ParameterView parameters) =>
         Dispatcher.InvokeAsync(() => RenderRootAsync(parameters));
+
+    internal Task ResizeAsync(int newColumns, int newRows, Func<Task> resized) => InvokeCallbackAsync(async () =>
+    {
+        columns = newColumns;
+        rows = newRows;
+        await resized();
+        if (CommittedRoot is { } root)
+        {
+            var frame = TerminalTree.PaintFrame(root, columns);
+            Output = frame.Text;
+            if (display is not null) await display(new(frame, [], columns, rows));
+        }
+    });
 
     internal Task InvokeCallbackAsync(Func<Task> callback) => Dispatcher.InvokeAsync(async () =>
     {
@@ -89,7 +103,7 @@ internal sealed class TerminalRenderer(IServiceProvider services, int columns, F
             var count = int.Parse(node.Attributes["staticCount"]!.ToString()!);
             if (node.Attributes.TryGetValue("staticCommit", out var callback) && callback is Action<int> committed) committed(count);
         }
-        return display?.Invoke(new(dynamicOutput, appended)) ?? Task.CompletedTask;
+        return display?.Invoke(new(dynamicOutput, appended, columns, rows)) ?? Task.CompletedTask;
     }
 
     private TerminalNode Commit(TerminalNode snapshot, Dictionary<object, TerminalNode> next)

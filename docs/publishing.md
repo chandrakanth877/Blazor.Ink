@@ -5,7 +5,7 @@
 - NuGet ID, assembly name, and public namespace: `Blazor.Ink`.
 - Repository: [chandrakanth877/Blazor.Ink](https://github.com/chandrakanth877/Blazor.Ink).
 - Git remote: `https://github.com/chandrakanth877/Blazor.Ink.git`.
-- Current version: `1.0.0`, not a full Ink-parity release.
+- Current version base: `1.0.0`, not a full Ink-parity release.
 - First published version: `0.1.0-preview.1`.
 - Dependencies: `Yoga.Net` 3.2.3 and `Wcwidth` 4.0.1, restored from their
   independently published packages and pinned in package lock files.
@@ -28,7 +28,8 @@ the current package dependencies.
    second repository. This checkout's `origin` is
    `https://github.com/chandrakanth877/Blazor.Ink.git`. Authenticate to GitHub.com
    as an authorized contributor, commit the export including package lock
-   files, and push `codex/nuget-release`. This branch push runs validation only.
+   files, and push `codex/nuget-release`. This branch push assigns a version and
+   runs validation, but does not publish to NuGet.
    Do not reuse corporate credentials without authorization.
    Establish `main` and merge the verified branch before tagging a release.
 2. Protect `main`, requiring all three OS verification jobs and disallowing
@@ -70,13 +71,42 @@ review; add a second maintainer and prevent self-approval when one is available.
    for logs, including failed checks. Linux also retains the package and symbols.
 3. Confirm NuGet package ownership, configure the protected `nuget` environment
    and Trusted Publishing policy above, and enable `NUGET_PUBLISH_ENABLED`.
-4. Merge the validated code to `main`, publish GitHub release
-   `v1.0.0` at that commit, wait for all three OS gates, then approve
-   the environment deployment. The publisher consumes the exact Linux artifact,
-   never rebuilds, and saves the NuGet.org-signed download and verification log.
+4. Merge the validated code to `main`, wait for its push validation, and publish
+   a GitHub release using that run's assigned `v<version>` tag. Wait for all
+   three OS gates, then approve the environment deployment. The publisher consumes
+   the exact Linux artifact, never rebuilds, and saves the NuGet.org-signed download
+   and verification log.
 
 Branch pushes, pull requests, and manual runs have no NuGet publishing
 permissions. No NuGet push is needed to run platform validation.
+
+## Automatic push versions
+
+Every branch push in the canonical repository reserves an annotated version tag
+and builds that exact version on all three platforms. Starting from `v1.0.0`,
+the next pushes build `1.0.1`, `1.0.2`, and so on. This increments the **patch**
+number, not the semantic-version minor number. Tags are the persistent counter;
+the workflow does not commit version changes to protected branches.
+
+To change the major/minor base, edit the first `<Version>` in
+`Directory.Build.props` to `1.1` (or `1.1.0`), `1.2`, or `2.0`, then push.
+An unused base starts at `.0`, followed by `.1`, `.2`, etc. Changing only the
+checked-in patch number does not reset the counter. Returning to a previously
+used base continues its existing counter; immutable versions are never reused.
+Do not delete or move version tags. Repository tag rules must allow the
+workflow's `GITHUB_TOKEN` to create `v*` tags.
+
+Workflow reruns reuse their assigned tag; separate pushes at the same commit
+still get separate versions. Concurrent pushes reserve distinct tags. Versions
+are assigned before validation, so failed builds also consume a number.
+Pull requests, fork repositories, and manual validation do not reserve tags.
+Release runs use the selected tag without incrementing. Tag creation does not
+trigger another push build. Only the version job can write Git contents; it
+keeps Git credentials only for canonical branch pushes.
+
+Local builds use the checked-in version by default. For a specific assigned
+version, run `PACKAGE_VERSION=1.0.42 bash scripts/verify.sh` (using the configured
+major/minor base). Automatic versioning does **not** automatically publish to NuGet.
 
 ## Build and release
 
@@ -106,9 +136,11 @@ vulnerability service, so an offline run alone does not establish an audit.
 The isolated consumer also checks that its cached package archive is byte-for-byte
 the locally built artifact, rather than an already published copy of that version.
 
-For subsequent releases, change the shared project version, commit it, and
-publish a GitHub release using the exact tag `v<version>`. The current release
-tag is `v1.0.0`. A mismatch fails before publication.
+For subsequent releases, publish a GitHub release using an existing
+auto-assigned `v<version>` tag from a passing push run. Do not retag the commit
+or change the checked-in patch for every release. The release tag must match
+the checked-out major/minor base; its complete version is passed through
+building, package inspection, and publication. A mismatch fails before publication.
 
 The workflow checks both frameworks and native input on all three operating
 systems. After all jobs pass and an environment reviewer approves publication,

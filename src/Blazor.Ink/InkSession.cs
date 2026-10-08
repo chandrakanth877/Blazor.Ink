@@ -10,8 +10,10 @@ public sealed record InkOptions
     public TextWriter Stderr { get; init; } = Console.Error;
     public Stream? Stdin { get; init; }
     public bool ExitOnCtrlC { get; init; } = true;
-    public int Columns { get; init; } = 80;
-    public int Rows { get; init; } = 24;
+    /// <summary>Null follows an interactive console's width; other outputs default to 80.</summary>
+    public int? Columns { get; init; }
+    /// <summary>Null follows an interactive console's height; other outputs default to 24.</summary>
+    public int? Rows { get; init; }
     public bool? Interactive { get; init; }
     public bool IncrementalRendering { get; init; }
     public bool HideCursor { get; init; } = true;
@@ -26,6 +28,13 @@ public sealed class InkSession : IAsyncDisposable
     private readonly TerminalWriter writer;
     private readonly TerminalRenderer renderer;
     public InkInput Input { get; }
+    public int Columns { get; private set; } = 80;
+    public int Rows { get; private set; } = 24;
+    /// <summary>Callbacks run sequentially on the renderer dispatcher after dimensions change.
+    /// Unsubscribe on disposal; use RequestExit rather than awaiting teardown inside a callback.</summary>
+    public event Func<Task>? Resized;
+    private readonly bool autoSize;
+    private Task? resizeMonitor;
     private readonly ServiceProvider? ownedServices;
     private readonly TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly CancellationToken cancellation;
@@ -59,8 +68,13 @@ public sealed class InkSession : IAsyncDisposable
             var interactive = options.Interactive ?? (ReferenceEquals(options.Stdout, Console.Out) &&
                 !Console.IsOutputRedirected && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI")) &&
                 Environment.GetEnvironmentVariable("TERM") != "dumb");
+            autoSize = interactive && ReferenceEquals(options.Stdout, Console.Out) && !Console.IsOutputRedirected &&
+                (options.Columns is null || options.Rows is null);
+            Columns = options.Columns ?? 80;
+            Rows = options.Rows ?? 24;
+            if (autoSize) (Columns, Rows) = ReadDimensions();
             writer = new(options, interactive, cancellation);
-            renderer = new(new SessionServices(this, services ?? ownedServices!), options.Columns, writer.DisplayAsync);
+            renderer = new(new SessionServices(this, services ?? ownedServices!), Columns, writer.DisplayAsync, Rows);
             Input = new(options, interactive, DispatchInputAsync,
                 writer.ControlAsync, error => _ = StopAsync(1, error), () => RequestExit());
             renderer.Faulted = error => _ = StopAsync(1, error);
@@ -93,6 +107,8 @@ public sealed class InkSession : IAsyncDisposable
                 registration = cancellation.Register(() => _ = StopAsync(1, new OperationCanceledException(cancellation)));
             }
             await mounting;
+            lock (gate)
+                if (autoSize && stop is null) resizeMonitor = MonitorResizeAsync();
             if (stop is { } stopping) await stopping;
             async Task InitializeAsync()
             {
@@ -106,6 +122,61 @@ public sealed class InkSession : IAsyncDisposable
         {
             try { await StopAsync(1, error); } catch { }
             ExceptionDispatchInfo.Capture(error).Throw();
+        }
+    }
+
+    private (int Columns, int Rows) ReadDimensions()
+    {
+        try
+        {
+            var columns = options.Columns ?? Console.WindowWidth;
+            var rows = options.Rows ?? Console.WindowHeight;
+            if (columns is >= 1 and <= Canvas.MaxDimension && rows is >= 1 and <= Canvas.MaxDimension &&
+                (long)columns * Math.Max(2, rows) <= Canvas.MaxCells)
+                return (columns, Math.Max(2, rows));
+        }
+        catch (IOException) { }
+        catch (PlatformNotSupportedException) { }
+        return (Columns, Rows);
+    }
+
+    private async Task MonitorResizeAsync()
+    {
+        // ponytail: 100 ms polling; use native resize notifications if lower latency matters.
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(StoppingToken))
+            {
+                var size = ReadDimensions();
+                await ResizeAsync(size.Columns, size.Rows);
+            }
+        }
+        catch (OperationCanceledException) when (StoppingToken.IsCancellationRequested) { }
+        catch (Exception error) { _ = StopAsync(1, error); }
+    }
+
+    internal Task ResizeAsync(int columns, int rows)
+    {
+        columns = options.Columns ?? columns;
+        rows = options.Rows ?? rows;
+        if (columns is < 1 or > Canvas.MaxDimension) throw new ArgumentOutOfRangeException(nameof(columns));
+        if (rows is < 2 or > Canvas.MaxDimension) throw new ArgumentOutOfRangeException(nameof(rows));
+        if ((long)columns * rows > Canvas.MaxCells) throw new ArgumentOutOfRangeException(nameof(rows));
+        lock (gate)
+        {
+            if (stop is not null || (columns == Columns && rows == Rows)) return Task.CompletedTask;
+            return Invoke(async () =>
+            {
+                await renderer.ResizeAsync(columns, rows, async () =>
+                {
+                    Columns = columns;
+                    Rows = rows;
+                    if (Resized is { } handlers)
+                        foreach (Func<Task> handler in handlers.GetInvocationList()) await handler();
+                });
+                await writer.FlushAsync();
+            });
         }
     }
 
@@ -205,10 +276,13 @@ public sealed class InkSession : IAsyncDisposable
             lock (gate) admitted = operations.ToArray();
             try { stopping.Cancel(); } catch (Exception error) { failure ??= error; }
             try { Input.BeginStop(); } catch (Exception error) { failure ??= error; }
+            if (resizeMonitor is { } monitoring)
+                try { await monitoring; } catch (Exception error) { failure ??= error; }
             foreach (var operation in admitted)
                 try { await operation; } catch (Exception error) { failure ??= error; }
             try { await renderer.Dispatcher.InvokeAsync(async () => await renderer.DisposeAsync()); }
             catch (Exception error) { failure ??= error; }
+            Resized = null;
             failure ??= renderer.Error;
             try { await Input.CloseAsync(); } catch (Exception error) { failure ??= error; }
             try { await writer.CloseAsync(); } catch (Exception error) { failure ??= error; }

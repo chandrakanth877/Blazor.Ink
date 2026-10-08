@@ -20,8 +20,9 @@ public sealed class ShowcaseState
         if (page < 0) throw new ArgumentException($"Unknown page '{initialPage}'. Choose: {string.Join(", ", Pages)}");
     }
 
-    public int Columns { get; }
-    public int Rows { get; }
+    public int Columns { get; private set; }
+    public int Rows { get; private set; }
+    internal void Resize(int columns, int rows) { Columns = columns; Rows = rows; }
     public int Padding => Columns < 60 ? 1 : 2;
     public int InnerColumns => Math.Max(1, Columns - 2 * Padding);
     public string Page => Pages[page];
