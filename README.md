@@ -1,7 +1,43 @@
-# Blazor.Ink — Razor layout, output sessions and input foundation
+<h1 align="center">Blazor.Ink</h1>
 
-[GitHub repository](https://github.com/chandrakanth877/Blazor.Ink) ·
-[Windows, Linux, and macOS validation](https://github.com/chandrakanth877/Blazor.Ink/actions/workflows/build.yml)
+<p align="center">
+  <strong>Razor components for the terminal.</strong><br>
+  Layout, Unicode, rendering, output sessions, and input — powered by .NET.
+</p>
+
+<p align="center">
+  <a href="https://www.nuget.org/packages/Blazor.Ink">
+    <img src="https://img.shields.io/nuget/vpre/Blazor.Ink?style=for-the-badge&amp;logo=nuget&amp;logoColor=white&amp;label=Version&amp;color=8b5cf6" alt="Latest published Blazor.Ink NuGet version">
+  </a>
+  <a href="https://github.com/chandrakanth877/Blazor.Ink/actions/workflows/build.yml?query=branch%3Amain+event%3Apush">
+    <img src="https://img.shields.io/github/actions/workflow/status/chandrakanth877/Blazor.Ink/build.yml?branch=main&amp;event=push&amp;style=for-the-badge&amp;logo=githubactions&amp;logoColor=white&amp;label=Build" alt="Main branch build and verification status">
+  </a>
+  <a href="https://github.com/chandrakanth877/Blazor.Ink/actions/workflows/build.yml?query=branch%3Amain+event%3Apush">
+    <img src="https://img.shields.io/github/actions/workflow/status/chandrakanth877/Blazor.Ink/build.yml?branch=main&amp;event=push&amp;style=for-the-badge&amp;logo=githubactions&amp;logoColor=white&amp;label=Tests" alt="Main branch executable checks and native-input verification status">
+  </a>
+  <a href="https://github.com/chandrakanth877/Blazor.Ink/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/chandrakanth877/Blazor.Ink?style=for-the-badge&amp;label=License&amp;color=22c55e" alt="MIT license">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/chandrakanth877/Blazor.Ink/blob/main/docs/publishing.md">
+    <img src="https://img.shields.io/badge/.NET-8%20%7C%2010-512BD4?style=for-the-badge&amp;logo=dotnet&amp;logoColor=white" alt="Supports .NET 8 and .NET 10">
+  </a>
+  <a href="https://github.com/chandrakanth877/Blazor.Ink">
+    <img src="https://img.shields.io/badge/100%25-Open%20Source-0ea5e9?style=for-the-badge&amp;logo=opensourceinitiative&amp;logoColor=white" alt="100 percent open source">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://www.nuget.org/packages/Blazor.Ink">NuGet package</a> &middot;
+  <a href="https://github.com/chandrakanth877/Blazor.Ink">GitHub repository</a> &middot;
+  <a href="https://github.com/chandrakanth877/Blazor.Ink/blob/main/docs/publishing.md">Documentation</a>
+</p>
+
+<p align="center">
+  <sub>Build and Tests track the same main-branch verification workflow on Windows, Linux, and macOS.</sub>
+</p>
 
 Razor components rendered into terminal text with Blazor and managed Yoga.
 Targets `net8.0` and `net10.0`; .NET 10 is recommended. .NET 8 is a legacy
