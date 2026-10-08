@@ -157,15 +157,15 @@ modes, clean local-package consumers, and 22 macOS arm64 PTY runs. See the
 ## Use in a Razor console project
 
 Use `Microsoft.NET.Sdk.Razor` and an `Microsoft.AspNetCore.App` framework reference.
-Once published, install version 1.0.0 with:
+Install the latest published stable version with:
 
 ```sh
-dotnet add package Blazor.Ink --version 1.0.0
+dotnet add package Blazor.Ink
 ```
 
 The standalone repository's samples use project references. Package consumers
 use the single `Blazor.Ink` package and its upstream NuGet dependencies.
-The 1.0.0 version does not imply full Ink parity; the documented implementation
+The package version does not imply full Ink parity; the documented implementation
 limitations still apply.
 
 ```razor
@@ -348,9 +348,11 @@ tags (`1.0.1`, `1.0.2`, ...); reruns reuse their assigned version. Change the
 first `<Version>` in `Directory.Build.props` to `1.1`, `1.2`, or `2.0` to start
 that major/minor base at patch zero. Pull requests and manual workflow runs
 validate without incrementing. All runs preserve per-OS validation logs.
-Only a published GitHub release with a `v<version>` tag
-matching the package version can publish, and only when publishing has been
-explicitly enabled. Pull requests and ordinary pushes cannot publish.
+Merging a PR into `main` assigns a new version and, after all verification jobs
+pass and the protected `nuget` environment is approved, publishes that exact
+package when `NUGET_PUBLISH_ENABLED` is `true`. Feature-branch pushes, open PRs,
+manual validation, and GitHub release events cannot publish. Creating a GitHub
+release for an already-published tag does not republish it.
 
 Publishing uses NuGet.org Trusted Publishing with GitHub OIDC; there is no
 long-lived API key. NuGet.org repository-signs accepted packages. Local build

@@ -31,15 +31,19 @@ the current package dependencies.
    files, and push `codex/nuget-release`. This branch push assigns a version and
    runs validation, but does not publish to NuGet.
    Do not reuse corporate credentials without authorization.
-   Establish `main` and merge the verified branch before tagging a release.
+   Establish `main` and merge the verified branch to queue publication.
 2. Protect `main`, requiring all three OS verification jobs and disallowing
    force pushes and deletion. The owner reviews workflow changes before
-   approving publication. Do not allow untrusted contributors to publish releases.
+   approving publication. Require PR merges rather than direct pushes to `main`.
+   Do not allow untrusted contributors to publish releases.
 3. Create the GitHub environment `nuget` with `chandrakanth877` as its required
    reviewer. Allow self-approval for this single-maintainer repository, but keep
-   the manual approval gate. Restrict deployments to tags matching `v*`, not
-   branches. These protections must be configured in GitHub; a workflow cannot
-   configure them for you.
+   the manual approval gate. Under **Deployment branches and tags**, allow only
+   the `main` branch for new publications. Existing `v*` tag rules may remain
+   for historical release workflows; do not allow all branches. An environment
+   still restricted only to `v*` tags will reject the main-branch publish job.
+   These protections must be configured in GitHub; a workflow cannot configure
+   them for you.
 4. Add the environment secret `NUGET_USER` with the value `Chandrakanth`: the
    authorized NuGet **profile username**, not an email address or API key.
 5. On NuGet.org, create a Trusted Publishing policy owned by the intended
@@ -48,7 +52,7 @@ the current package dependencies.
    `Blazor.Ink`. Permit new packages for the first publication and new versions
    afterwards.
 6. Only after confirming ownership and environment protections, set the
-   repository variable `NUGET_PUBLISH_ENABLED` to `true`. Without it, release
+   repository variable `NUGET_PUBLISH_ENABLED` to `true`. Without it, main-branch
    verification runs but publishing is skipped.
 
 No long-lived NuGet API key, author-signing certificate, or strong-name key is
@@ -71,14 +75,18 @@ review; add a second maintainer and prevent self-approval when one is available.
    for logs, including failed checks. Linux also retains the package and symbols.
 3. Confirm NuGet package ownership, configure the protected `nuget` environment
    and Trusted Publishing policy above, and enable `NUGET_PUBLISH_ENABLED`.
-4. Merge the validated code to `main`, wait for its push validation, and publish
-   a GitHub release using that run's assigned `v<version>` tag. Wait for all
-   three OS gates, then approve the environment deployment. The publisher consumes
-   the exact Linux artifact, never rebuilds, and saves the NuGet.org-signed download
-   and verification log.
+4. Merge the validated PR to `main`. Its push run assigns a fresh `v<version>`
+   tag, waits for all three OS gates, then queues the protected `nuget`
+   deployment for approval. Approve that deployment to publish. The publisher
+   consumes the exact Linux artifact, never rebuilds, and saves the
+   NuGet.org-signed download and verification log. No separate GitHub release
+   or version-edit commit is required. Each version has its own approval and
+   concurrency group, so a newer merge does not cancel an older pending version.
 
-Branch pushes, pull requests, and manual runs have no NuGet publishing
-permissions. No NuGet push is needed to run platform validation.
+Feature-branch pushes, open pull requests, release events, and manual runs
+have no NuGet publishing permissions. Main pushes (including PR merges)
+are the sole publishing trigger; branch protection should require PRs.
+No NuGet push is needed to run platform validation.
 
 ## Automatic push versions
 
@@ -100,13 +108,14 @@ Workflow reruns reuse their assigned tag; separate pushes at the same commit
 still get separate versions. Concurrent pushes reserve distinct tags. Versions
 are assigned before validation, so failed builds also consume a number.
 Pull requests, fork repositories, and manual validation do not reserve tags.
-Release runs use the selected tag without incrementing. Tag creation does not
-trigger another push build. Only the version job can write Git contents; it
-keeps Git credentials only for canonical branch pushes.
+Release runs use the selected tag without incrementing or publishing again.
+Tag creation does not trigger another push build. Only the version job can
+write Git contents; it keeps Git credentials only for canonical branch pushes.
 
 Local builds use the checked-in version by default. For a specific assigned
 version, run `PACKAGE_VERSION=1.0.42 bash scripts/verify.sh` (using the configured
-major/minor base). Automatic versioning does **not** automatically publish to NuGet.
+major/minor base). Main pushes queue publication after validation; they still
+require the enable switch and manual `nuget` approval. Other pushes only build.
 
 ## Build and release
 
@@ -136,11 +145,12 @@ vulnerability service, so an offline run alone does not establish an audit.
 The isolated consumer also checks that its cached package archive is byte-for-byte
 the locally built artifact, rather than an already published copy of that version.
 
-For subsequent releases, publish a GitHub release using an existing
-auto-assigned `v<version>` tag from a passing push run. Do not retag the commit
-or change the checked-in patch for every release. The release tag must match
-the checked-out major/minor base; its complete version is passed through
-building, package inspection, and publication. A mismatch fails before publication.
+For subsequent releases, merge a PR into `main` and approve its validated
+NuGet deployment. Do not retag the commit or change the checked-in patch for
+every release. The assigned tag's complete version is passed through building,
+package inspection, and publication; a mismatch fails before publication.
+Optionally create a GitHub release on that existing tag after NuGet publication.
+That event only validates the version; it cannot republish the same package.
 
 The workflow checks both frameworks and native input on all three operating
 systems. After all jobs pass and an environment reviewer approves publication,

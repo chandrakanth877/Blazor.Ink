@@ -12,6 +12,7 @@ if [[ -n "${RELEASE_TAG:-}" && "$RELEASE_TAG" != "v$version" ]]; then
 fi
 "$python" scripts/test-package.py
 "$python" scripts/test-version.py
+"$python" scripts/test-workflow.py
 restore_source=()
 if [[ -n "${NUGET_SOURCE:-}" ]]; then restore_source+=(--source "$NUGET_SOURCE"); fi
 "$dotnet" restore Blazor.Ink.sln --locked-mode --disable-parallel -m:1 ${restore_source[@]+"${restore_source[@]}"}
