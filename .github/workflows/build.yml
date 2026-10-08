@@ -49,7 +49,7 @@ jobs:
             version="$(python3 scripts/version.py)"
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Package version: \`$version\`. Pushes reserve \`v$version\`; reruns reuse it. No NuGet publication." >> "$GITHUB_STEP_SUMMARY"
+          echo "Package version: \`$version\`. Pushes reserve \`v$version\`; reruns reuse it. Only validated main pushes can publish, after nuget approval." >> "$GITHUB_STEP_SUMMARY"
 
   verify:
     name: Verify (${{ matrix.os }})
@@ -118,14 +118,15 @@ jobs:
           retention-days: 14
 
   publish:
-    name: Publish approved release
+    name: Publish approved main build
     needs: [version, verify]
-    if: github.repository == 'chandrakanth877/Blazor.Ink' && github.event_name == 'release' && vars.NUGET_PUBLISH_ENABLED == 'true'
+    if: github.repository == 'chandrakanth877/Blazor.Ink' && github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.NUGET_PUBLISH_ENABLED == 'true'
     runs-on: windows-latest
     timeout-minutes: 30
     environment: nuget
     concurrency:
-      group: publish-blazor-ink
+      # A shared group can drop older pending merges while approval is waiting.
+      group: publish-blazor-ink-${{ needs.version.outputs.version }}
       cancel-in-progress: false
     permissions:
       contents: read
@@ -135,9 +136,9 @@ jobs:
         shell: bash
     env:
       PACKAGE_VERSION: ${{ needs.version.outputs.version }}
-      RELEASE_TAG: ${{ github.event.release.tag_name }}
+      RELEASE_TAG: ${{ format('v{0}', needs.version.outputs.version) }}
     steps:
-      - name: Checkout the same release commit
+      - name: Checkout the same verified main commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
