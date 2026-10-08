@@ -5,7 +5,8 @@
 - NuGet ID, assembly name, and public namespace: `Blazor.Ink`.
 - Repository: [chandrakanth877/Blazor.Ink](https://github.com/chandrakanth877/Blazor.Ink).
 - Git remote: `https://github.com/chandrakanth877/Blazor.Ink.git`.
-- First version: `0.1.0-preview.1`, not a full Ink-parity release.
+- Current version: `1.0.0`, not a full Ink-parity release.
+- First published version: `0.1.0-preview.1`.
 - Dependencies: `Yoga.Net` 3.2.3 and `Wcwidth` 4.0.1, restored from their
   independently published packages and pinned in package lock files.
 - Targets: .NET 8 and 10. .NET 10 is recommended; .NET 8 support ends
@@ -55,7 +56,7 @@ required. Do not commit credentials or certificate private keys.
 <!-- ponytail: single-owner approval is manual authorization, not independent
 review; add a second maintainer and prevent self-approval when one is available. -->
 
-## Validation pipeline and first-publication plan
+## Validation pipeline and release plan
 
 1. Push the local branch and inspect the
    [Actions run](https://github.com/chandrakanth877/Blazor.Ink/actions/workflows/build.yml).
@@ -70,7 +71,7 @@ review; add a second maintainer and prevent self-approval when one is available.
 3. Confirm NuGet package ownership, configure the protected `nuget` environment
    and Trusted Publishing policy above, and enable `NUGET_PUBLISH_ENABLED`.
 4. Merge the validated code to `main`, publish GitHub release
-   `v0.1.0-preview.1` at that commit, wait for all three OS gates, then approve
+   `v1.0.0` at that commit, wait for all three OS gates, then approve
    the environment deployment. The publisher consumes the exact Linux artifact,
    never rebuilds, and saves the NuGet.org-signed download and verification log.
 
@@ -106,8 +107,8 @@ The isolated consumer also checks that its cached package archive is byte-for-by
 the locally built artifact, rather than an already published copy of that version.
 
 For subsequent releases, change the shared project version, commit it, and
-publish a GitHub release using the exact tag `v<version>`. For the first release
-the tag is `v0.1.0-preview.1`. A mismatch fails before publication.
+publish a GitHub release using the exact tag `v<version>`. The current release
+tag is `v1.0.0`. A mismatch fails before publication.
 
 The workflow checks both frameworks and native input on all three operating
 systems. After all jobs pass and an environment reviewer approves publication,
@@ -120,7 +121,7 @@ an existing package. If push succeeded but indexing/signature verification
 failed, **do not rerun the publishing job**: the version was already accepted.
 NuGet validation and indexing are asynchronous; the download waits up to
 15 minutes and retains failure logs. Choose **Run workflow** on `main` and set
-`published_tag` to the existing release tag (for example `v0.1.0-preview.1`).
+`published_tag` to the existing release tag (for example `v1.0.0`).
 This recovery checks out the unchanged tag, downloads the indexed package,
 verifies its signature and release metadata on Windows, and preserves the
 signed package and logs. It neither rebuilds nor requests credentials nor
@@ -136,10 +137,10 @@ downloads the indexed package, runs `dotnet nuget verify --all`, and preserves
 the verified download plus log as `repository-signed-nuget`. `.snupkg` files
 are not signed, and the assembly is not strong-named.
 
-Author signing is a separate, future requirement: it needs a NuGet-compatible
-public-CA code-signing certificate, supported key custody/CI access, timestamping,
-and certificate registration on NuGet.org. Self-signed certificates are not
-accepted for production publication.
+This release uses free NuGet.org repository signing only. No domain, purchased
+certificate, private key, or author-signing step is needed. Do not register an
+author-signing certificate on the sole-owner NuGet profile unless CI is also
+updated to author-sign future submissions: registration makes that mandatory.
 
 Local verification does not certify Windows/Linux until their GitHub native
 gates actually pass. Package signing verification may be unsupported on some

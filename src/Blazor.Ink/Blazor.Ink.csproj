@@ -5,7 +5,7 @@
     <RootNamespace>Blazor.Ink</RootNamespace>
     <IsPackable>true</IsPackable>
     <Authors>Blazor.Ink contributors</Authors>
-    <Description>Blazor-native terminal UI preview. Not yet full Ink 8 parity.</Description>
+    <Description>Blazor-native terminal UI. Not yet full Ink 8 parity.</Description>
     <PackageTags>blazor;razor;terminal;cli;tui;flexbox;yoga</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>

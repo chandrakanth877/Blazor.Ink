@@ -121,14 +121,16 @@ modes, clean local-package consumers, and 22 macOS arm64 PTY runs. See the
 ## Use in a Razor console project
 
 Use `Microsoft.NET.Sdk.Razor` and an `Microsoft.AspNetCore.App` framework reference.
-Once published, install the preview with:
+Once published, install version 1.0.0 with:
 
 ```sh
-dotnet add package Blazor.Ink --version 0.1.0-preview.1
+dotnet add package Blazor.Ink --version 1.0.0
 ```
 
 The standalone repository's samples use project references. Package consumers
 use the single `Blazor.Ink` package and its upstream NuGet dependencies.
+The 1.0.0 version does not imply full Ink parity; the documented implementation
+limitations still apply.
 
 ```razor
 @using Blazor.Ink
