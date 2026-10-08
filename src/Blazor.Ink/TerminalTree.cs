@@ -11,7 +11,7 @@ internal readonly record struct TerminalFrame(string Text, int Height)
     public static TerminalFrame Empty => new("", 0);
 }
 
-internal sealed record TerminalUpdate(TerminalFrame Live, IReadOnlyList<TerminalFrame> Static);
+internal sealed record TerminalUpdate(TerminalFrame Live, IReadOnlyList<TerminalFrame> Static, int Columns, int Rows);
 
 internal sealed class TerminalNode(string name)
 {

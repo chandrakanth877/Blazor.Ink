@@ -86,6 +86,37 @@ internal static class Checks
             Equal(true, TerminalText.Plain(await Render(new(20, 24, "Runtime"), snapshot))
                 .Contains("[Runtime]", StringComparison.Ordinal), "wrapped navigation keeps the selected page visible");
 
+        foreach (var page in ShowcaseState.Pages)
+        {
+            var resized = new ShowcaseState(100, 30);
+            resized.Messages.Add("Remember this message");
+            resized.Documents.Add("demo.cs");
+            resized.Tasks.Add("✓ Completed task 1");
+            resized.Paste("Keep my draft 👩‍💻");
+            while (resized.Page != page) resized.Handle(Key("n", ctrl: true));
+            foreach (var (columns, rows) in new[] { (44, 18), (120, 40), (20, 8) })
+            {
+                resized.Resize(columns, rows);
+                var lines = TerminalText.Plain(await Render(resized)).Split('\n').Skip(1).ToArray();
+                Equal(true, lines.All(line => TerminalText.Width(line) <= columns), $"{page} resize respects width");
+                Equal(true, lines.Length <= rows - 1, $"{page} resize reserves cursor row");
+                if (resized.ViewportRows < 1)
+                    Equal(true, string.Join('\n', lines).Contains("Terminal too", StringComparison.Ordinal), $"{page} too-small warning");
+                else
+                {
+                    Equal(true, string.Join('\n', lines).Contains($"[{page}]", StringComparison.Ordinal), $"{page} resize keeps selected navigation");
+                    Equal(true, string.Join('\n', lines).Contains("Ctrl+C", StringComparison.Ordinal), $"{page} resize keeps exit help");
+                    if (page == "Chat")
+                        Equal(true, string.Join('\n', lines).Contains("Keep my draft", StringComparison.Ordinal), "resize keeps composer visible");
+                }
+                Equal(page, resized.Page, "resize preserves selected page");
+                Equal("Keep my draft 👩‍💻", resized.Draft, "resize preserves Unicode draft");
+                Equal("Remember this message", resized.Messages.Single(), "resize preserves chat messages");
+                Equal("demo.cs", resized.Documents.Single(), "resize preserves attachments");
+                Equal("✓ Completed task 1", resized.Tasks.Single(), "resize preserves Static items");
+            }
+        }
+
         var chat = new ShowcaseState(40, 16);
         var chatOutput = await RunScript(chat, "/add demo.cs\rhello\r\u0014\u0003");
         Equal(1, chat.Messages.Count, "coalesced native text and Enter submits");

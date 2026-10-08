@@ -12,6 +12,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        State.Resize(Session.Columns, Session.Rows);
+        Session.Resized += ResizeAsync;
         State.InputAvailable = Input.IsAvailable;
         State.RawModeSupported = Input.IsRawModeSupported;
         keys = Input.Subscribe(HandleAsync);
@@ -22,6 +24,13 @@
             StateHasChanged();
         });
         await MeasureAsync();
+    }
+
+    private async Task ResizeAsync()
+    {
+        State.Resize(Session.Columns, Session.Rows);
+        await MeasureAsync();
+        StateHasChanged();
     }
 
     private async Task HandleAsync(InkInputEvent input)
@@ -55,5 +64,5 @@
         State.ClampScroll();
     }
 
-    public void Dispose() { keys?.Dispose(); paste?.Dispose(); }
+    public void Dispose() { Session.Resized -= ResizeAsync; keys?.Dispose(); paste?.Dispose(); }
 }

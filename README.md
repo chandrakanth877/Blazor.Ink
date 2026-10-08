@@ -197,7 +197,7 @@ provider and its scope. An omitted provider is created and disposed by the host.
 
 ```csharp
 await using var session = await Blazor.Ink.InkHost.RenderAsync<MyComponent>(
-    new Blazor.Ink.InkOptions { Columns = 80, Rows = 24, IncrementalRendering = true });
+    new Blazor.Ink.InkOptions { IncrementalRendering = true });
 await session.RerenderAsync(parameters);
 await session.WriteAsync("External output is sanitized and coordinated.");
 await session.AwaitFlushAsync();
@@ -209,9 +209,21 @@ var exitCode = await session.WaitUntilExitAsync();
 same writer instance is rejected. Custom sinks default to noninteractive output;
 set `Interactive = true` only for a sink that supports ANSI cursor controls.
 Automatic detection uses Console.Out redirection, `CI`, and `TERM=dumb`.
-Columns/rows are explicit (defaults 80/24); automatic sizing/resize comes later.
+Nullable `Columns`/`Rows` follow the size of an interactive native console when
+omitted. Explicit values pin that dimension; custom sinks and noninteractive
+sessions default to 80/24 without monitoring. Headless rendering is unchanged.
+Console dimensions are checked every 100 ms; failed/unusable readings retain the
+last valid size, and tiny console heights reserve a minimum of two rows.
+`session.Columns`/`Rows` expose the resolved current dimensions. Components can
+subscribe to `session.Resized` with a `Func<Task>`, update their layout state and
+call `StateHasChanged`; unsubscribe when disposed. Callbacks are awaited
+sequentially on the Blazor dispatcher. Use `RequestExit`, not awaited teardown,
+inside a resize callback, just as with input callbacks.
 The live region keeps at most `Rows - 1` trailing rows, reserving a cursor row.
 Both full redraw and safe whole-line incremental redraw are available.
+On resize, the visible viewport is cleared and the live tree is relaid out without
+remounting components or replaying consumed Static items. Scrollback is never
+purged, but history still visible above the live UI may disappear from the viewport.
 Interactive startup first writes CRLF to preserve any preexisting partial line
 and establish column zero; this can add a blank line on an already fresh terminal.
 
@@ -282,7 +294,8 @@ this deliberately avoids copying an incomplete RenderBatch edit switch.
 |---|---|
 | Session output APIs; serialized writer and repaint modes | Preview implemented; no platform certification |
 | Native input, fragmented decoding, bracketed paste and subscriptions | Input foundation implemented; certification is platform-specific |
-| Kitty, focus, cursor intent and resize | Not implemented |
+| Automatic console sizing and resize callbacks | Preview implemented; viewport repaint, not full lifecycle parity |
+| Kitty, focus and cursor intent | Not implemented |
 | Append-once Static and explicit stdout/stderr writes | Preview implemented |
 | Suspension, Console patching, alternate screen, handled signals | Not implemented |
 | Accessibility output, metrics and animation scheduler | Not implemented |
@@ -330,8 +343,11 @@ This produces an unsigned `.nupkg` and portable-symbol `.snupkg` under
 The checked-in SDK version is used for reproducible framework selection.
 
 GitHub Actions verifies both frameworks on Windows, Linux, and macOS, including
-native input checks. Pushes to `main` or `codex/**`, pull requests, and manual
-workflow runs validate without publishing and preserve per-OS validation logs.
+native input checks. Every branch push assigns the next patch version using Git
+tags (`1.0.1`, `1.0.2`, ...); reruns reuse their assigned version. Change the
+first `<Version>` in `Directory.Build.props` to `1.1`, `1.2`, or `2.0` to start
+that major/minor base at patch zero. Pull requests and manual workflow runs
+validate without incrementing. All runs preserve per-OS validation logs.
 Only a published GitHub release with a `v<version>` tag
 matching the package version can publish, and only when publishing has been
 explicitly enabled. Pull requests and ordinary pushes cannot publish.

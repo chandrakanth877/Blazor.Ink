@@ -2,7 +2,7 @@ name: Build and publish Blazor.Ink
 
 on:
   push:
-    branches: [main, 'codex/**']
+    branches: ['**']
   pull_request:
   workflow_dispatch:
     inputs:
@@ -18,8 +18,42 @@ permissions:
   contents: read
 
 jobs:
+  version:
+    name: Assign package version
+    if: github.event_name != 'workflow_dispatch' || inputs.published_tag == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
+    steps:
+      - name: Checkout the event commit and version tags
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: ${{ github.event_name == 'push' && github.repository == 'chandrakanth877/Blazor.Ink' }}
+      - name: Resolve version once for all build jobs
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == push && "$GITHUB_REPOSITORY" == chandrakanth877/Blazor.Ink ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            version="$(python3 scripts/version.py --assign "$GITHUB_RUN_ID")"
+          elif [[ "$GITHUB_EVENT_NAME" == release ]]; then
+            version="$(python3 scripts/version.py --release-tag "$RELEASE_TAG")"
+          else
+            version="$(python3 scripts/version.py)"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Package version: \`$version\`. Pushes reserve \`v$version\`; reruns reuse it. No NuGet publication." >> "$GITHUB_STEP_SUMMARY"
+
   verify:
     name: Verify (${{ matrix.os }})
+    needs: version
     if: github.event_name != 'workflow_dispatch' || inputs.published_tag == ''
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
@@ -38,6 +72,7 @@ jobs:
         shell: bash
     env:
       PYTHON: ${{ matrix.python }}
+      PACKAGE_VERSION: ${{ needs.version.outputs.version }}
       RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
     steps:
       - name: Checkout the event commit
@@ -84,7 +119,7 @@ jobs:
 
   publish:
     name: Publish approved release
-    needs: verify
+    needs: [version, verify]
     if: github.repository == 'chandrakanth877/Blazor.Ink' && github.event_name == 'release' && vars.NUGET_PUBLISH_ENABLED == 'true'
     runs-on: windows-latest
     timeout-minutes: 30
@@ -99,6 +134,7 @@ jobs:
       run:
         shell: bash
     env:
+      PACKAGE_VERSION: ${{ needs.version.outputs.version }}
       RELEASE_TAG: ${{ github.event.release.tag_name }}
     steps:
       - name: Checkout the same release commit
@@ -187,6 +223,11 @@ jobs:
       - name: Check release version without rebuilding
         id: package
         run: |
+          # Older release tags predate generated versions and the override property.
+          if [[ -f scripts/version.py ]]; then
+            PACKAGE_VERSION="$(python scripts/version.py --release-tag "$RELEASE_TAG")"
+            export PACKAGE_VERSION
+          fi
           version="$(dotnet msbuild src/Blazor.Ink/Blazor.Ink.csproj -getProperty:Version | tr -d '\r')"
           if [[ "$RELEASE_TAG" != "v$version" ]]; then
             echo "Release tag must equal v$version." >&2
