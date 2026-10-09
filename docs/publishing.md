@@ -117,6 +117,21 @@ version, run `PACKAGE_VERSION=1.0.42 bash scripts/verify.sh` (using the configur
 major/minor base). Main pushes queue publication after validation; they still
 require the enable switch and manual `nuget` approval. Other pushes only build.
 
+## Package metadata and discoverability
+
+`src/Blazor.Ink/Blazor.Ink.csproj` defines the package title, description, search
+tags, authors, project/repository links, and bundled README. Keep the description
+and tags focused on supported features: Blazor/Razor, C#/.NET, terminal UI (TUI),
+command-line (CLI) applications, flexbox, ANSI colors, and Unicode.
+`scripts/check-package.py` rejects release artifacts with missing or mismatched
+title, description, or tags.
+
+Published NuGet versions are immutable: metadata changes require a new package
+version through the existing validated main-merge and approval workflow.
+Confirm the new version is **listed** on NuGet.org and allow time for indexing;
+metadata alone cannot make an unlisted package appear in NuGet search or
+guarantee search-engine ranking.
+
 ## Build and release
 
 Install the pinned .NET 10 SDK and the .NET 8 ASP.NET Core runtime/targeting

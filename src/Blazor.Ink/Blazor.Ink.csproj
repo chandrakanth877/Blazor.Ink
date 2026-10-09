@@ -5,8 +5,9 @@
     <RootNamespace>Blazor.Ink</RootNamespace>
     <IsPackable>true</IsPackable>
     <Authors>Blazor.Ink contributors</Authors>
-    <Description>Blazor-native terminal UI. Not yet full Ink 8 parity.</Description>
-    <PackageTags>blazor;razor;terminal;cli;tui;flexbox;yoga</PackageTags>
+    <Title>Blazor.Ink - Blazor Terminal UI for .NET</Title>
+    <Description>Build terminal user interfaces (TUI) and command-line (CLI) applications in C# and .NET with Blazor Razor components. Includes flexbox layout, ANSI colors, Unicode text, live rendering, keyboard input, and bracketed paste. Supports .NET 8 and .NET 10. Ink-inspired; not yet full Ink 8 parity.</Description>
+    <PackageTags>blazor;razor;csharp;dotnet;console;terminal;terminal-ui;console-ui;tui;cli;command-line;ink;flexbox;yoga;ansi;unicode</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl Condition="'$(RepositoryUrl)' == ''">https://github.com/chandrakanth877/Blazor.Ink</RepositoryUrl>
