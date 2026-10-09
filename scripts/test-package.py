@@ -10,9 +10,10 @@ module = runpy.run_path(str(Path(__file__).with_name("check-package.py")))
 check_package = module["check_package"]
 root = module["ROOT"]
 version = module["package_version"]()
+project = ET.parse(root / "src/Blazor.Ink/Blazor.Ink.csproj")
 dependencies = {
     item.attrib["Include"]: item.attrib["Version"]
-    for item in ET.parse(root / "src/Blazor.Ink/Blazor.Ink.csproj").findall(".//PackageReference")
+    for item in project.findall(".//PackageReference")
 }
 
 MANIFEST = """<package><metadata>
@@ -31,6 +32,11 @@ MANIFEST = """<package><metadata>
 </frameworkReferences></metadata></package>"""
 MANIFEST = MANIFEST.replace("0.1.0-preview.1", version)
 MANIFEST = MANIFEST.replace("3.2.3", dependencies["Yoga.Net"]).replace("4.0.1", dependencies["Wcwidth"])
+manifest = ET.fromstring(MANIFEST)
+for field, property_name in (("title", "Title"), ("description", "Description"), ("tags", "PackageTags")):
+    value = project.findtext(f".//{property_name}") or ""
+    ET.SubElement(manifest.find("metadata"), field).text = value.replace(";", " ") if field == "tags" else value
+MANIFEST = ET.tostring(manifest, encoding="unicode")
 
 with tempfile.TemporaryDirectory() as directory:
     package = Path(directory) / "test.nupkg"
@@ -63,6 +69,15 @@ with tempfile.TemporaryDirectory() as directory:
         (MANIFEST, "vendor/source.cs", {}),
         (MANIFEST, "lib/net8.0/Yoga.Net.dll", {}),
     ]
+    for field in ("title", "description", "tags"):
+        for value in (None, "", "unrelated"):
+            invalid = ET.fromstring(MANIFEST)
+            node = invalid.find(f"metadata/{field}")
+            if value is None:
+                invalid.find("metadata").remove(node)
+            else:
+                node.text = value
+            cases.append((ET.tostring(invalid, encoding="unicode"), None, {}))
     for manifest, extra, options in cases:
         write(manifest, extra)
         try:

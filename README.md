@@ -39,7 +39,11 @@
   <sub>Build and Tests track the same main-branch verification workflow on Windows, Linux, and macOS.</sub>
 </p>
 
-Razor components rendered into terminal text with Blazor and managed Yoga.
+Blazor.Ink is a .NET terminal user interface (TUI) library for building command-line
+(CLI) applications in C# with Blazor and Razor components. It includes managed Yoga
+flexbox layout, ANSI colors, Unicode text, live rendering, keyboard input, and
+bracketed paste.
+
 Targets `net8.0` and `net10.0`; .NET 10 is recommended. .NET 8 is a legacy
 compatibility target and reaches end of support on November 10, 2026.
 

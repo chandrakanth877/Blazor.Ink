@@ -38,6 +38,12 @@ def check_package(path, *, tag=None, repository=None, commit=None, symbols=None,
         require(re.fullmatch(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", version), "Invalid version")
         require(tag is None or tag == f"v{version}", "Release tag differs from package version")
         require(metadata.findtext("authors") == "Blazor.Ink contributors", "Incorrect authors")
+        for field, property_name in (("title", "Title"), ("description", "Description"), ("tags", "PackageTags")):
+            expected = (project.findtext(f".//{property_name}") or "").strip()
+            if field == "tags":
+                expected = " ".join(expected.replace(";", " ").split())
+            require(expected and metadata.findtext(field) == expected,
+                    f"Missing or incorrect package {field}")
         license_node = metadata.find("license")
         require(license_node is not None and license_node.get("type") == "expression"
                 and license_node.text == "MIT", "Expected MIT license metadata")
